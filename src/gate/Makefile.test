@@ -1,0 +1,13 @@
+wd=`pwd`
+
+all: udt udtgate m
+
+udt:
+	cd /home/wk/tmp/udt-patch/UDT3/src; make && cd $(wd) || exit 1;
+
+udtgate: /home/wk/tmp/udt-patch/UDT3/src/libudt.a
+	make clean
+
+m:
+	make
+
