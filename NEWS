@@ -1,5 +1,14 @@
-2007-08-24 Version 1.1 (beta)
-	* First release
-	* todo: Rendezvous mode
-	* todo: origin UDT CC (!)
 
+    * 
+    * fixed: origin UDT CC support
+
+2007-08-24 Version 1.1 (beta)
+    *
+    * First release
+    *
+	* todo: rendezvous mode
+	* todo: origin UDT CC (!)
+    * todo: fix accurate UDP max buffer checking
+    * todo: fix symmetrical access control: forbid passing udt->tcp connections
+            to that hosts which are not accepted.
+    * todo: generic socket api integration

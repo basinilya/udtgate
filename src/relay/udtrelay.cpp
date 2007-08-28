@@ -93,7 +93,7 @@ typedef map<UDTOpt, int> UDT_OPTIONS_T;
 UDT_OPTIONS_T udt_options;
 
 char* cc_lib[] = {"Vegas","TCP","ScalableTCP","HSTCP","BiCTCP", "Westwood", "FAST"};
-char* ccc = "Vegas";
+char* ccc = "";
 
 extern char *optarg;
 extern int   optind, opterr;
@@ -134,13 +134,14 @@ int main(int argc, char* argv[], char* envp[])
         "                     coonections.\n"
         "    -C               client-only mode: don't accept incoming UDT connections\n"
         "    -S               server-only mode: don't accept incoming socks connections\n"
+        "    -R               (-) turn rendezvous mode on\n"
 #ifdef UDP_BASEPORT_OPTION
         "    -P <from:to>     UDP port range to use for UDT data chanel\n"
 #endif
         "    -B <rcv>         UDT rcv buffer size in megabytes (default: 1Mb) \n"
         "    -c <ccc>         Congetion control class:\n"
-        "                     Vegas (default), TCP,  ScalableTCP, HSTCP, BiCTCP,\n"
-        "                     Westwood, FAST\n"
+        "                     UDT (default), TCP, Vegas, ScalableTCP, HSTCP, "
+        "                     BiCTCP, Westwood, FAST\n"
         "    -U <opt=val>     Set some additional UDT options for UDT socket:\n"
         "                     UDT_MSS, UDT_RCVBUF, UDT_SNDBUF, UDP_RCVBUF or \n"
         "                     UDP_SNDBUF.\n"
@@ -683,7 +684,13 @@ void setsockopt(UDTSOCKET sock) {
 
     // {"Vegas","TCP","ScalableTCP","HSTCP","BiCTCP", "Westwood", "FAST"};
 
-    if (! strcasecmp(ccc, "Vegas")) {
+    if (! strcasecmp(ccc, "")) {
+        //UDT::setsockopt(sock, 0, UDT_CC, new CCCFactory<CUDTCC>, sizeof(CCCFactory<CUDTCC>));
+    }
+    else if (! strcasecmp(ccc, "UDT")) {
+        UDT::setsockopt(sock, 0, UDT_CC, new CCCFactory<CUDTCC>, sizeof(CCCFactory<CUDTCC>));
+    }
+    else if (! strcasecmp(ccc, "Vegas")) {
         UDT::setsockopt(sock, 0, UDT_CC, new CCCFactory<CVegas>, sizeof(CCCFactory<CVegas>));
     }
     else if (! strcasecmp(ccc, "TCP")) {
