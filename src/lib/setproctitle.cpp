@@ -11,7 +11,8 @@
  * A copy of the above mentioned LICENSE file can be found in
  * LICENSE.setproctitle.
  *
- * Ported for use with KDE by Waldo Bastian <bastian@kde.org>
+ * Derived from ported version for use with KDE by Waldo Bastian 
+ * <bastian@kde.org>
  */
 
 #include "setproctitle.h"
