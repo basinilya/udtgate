@@ -92,7 +92,8 @@ _system("automake");
 
 my $REWRITED = $rewrite ? "(rewrited)":"";
 _system("cvs commit -m 'Release $newver$REWRITED'");
-_system("cvs tag rel-$newmaj-$newmin");
+_system("cvs tag -d rel-$newmaj-$newmin");
+_system("cvs tag -c rel-$newmaj-$newmin");
 
 _system("make dist");
 
