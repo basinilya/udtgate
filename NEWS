@@ -1,8 +1,10 @@
-
+2007-07-31 Version 1.2 (beta)
     * done:  UDT rendezvous mode support
     * fixed: original UDT CC support (alfa)
     *
     * todo: generic socket api integration
+    * todo: fix symmetrical access control: forbid passing udt->tcp connections
+            to that hosts which are not accepted.
 
 2007-08-24 Version 1.1 (beta)
     *
