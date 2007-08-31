@@ -14,7 +14,7 @@
 
 
 
-SOURCES = $(test_SOURCES)
+SOURCES = $(test_SOURCES) $(ugw_testconn_SOURCES)
 
 srcdir = .
 top_srcdir = ../..
@@ -39,7 +39,7 @@ POST_UNINSTALL = :
 build_triplet = i686-pc-linux-gnu
 host_triplet = i686-pc-linux-gnu
 target_triplet = i686-pc-linux-gnu
-bin_PROGRAMS = test$(EXEEXT)
+bin_PROGRAMS = ugw_testconn$(EXEEXT) test$(EXEEXT)
 subdir = src/test
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -55,6 +55,8 @@ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
 am_test_OBJECTS = test.$(OBJEXT)
 test_OBJECTS = $(am_test_OBJECTS)
+am_ugw_testconn_OBJECTS = testconn.$(OBJEXT)
+ugw_testconn_OBJECTS = $(am_ugw_testconn_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/src/include
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -63,8 +65,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(test_SOURCES)
-DIST_SOURCES = $(test_SOURCES)
+SOURCES = $(test_SOURCES) $(ugw_testconn_SOURCES)
+DIST_SOURCES = $(test_SOURCES) $(ugw_testconn_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -106,16 +108,16 @@ OBJEXT = o
 PACKAGE = udtgate
 PACKAGE_BUGREPORT = v.konoplev@acm.org
 PACKAGE_NAME = udtgate
-PACKAGE_STRING = udtgate 1.2
+PACKAGE_STRING = udtgate 1.1
 PACKAGE_TARNAME = udtgate
-PACKAGE_VERSION = 1.2
+PACKAGE_VERSION = 1.1
 PATH_SEPARATOR = :
 RANLIB = ranlib
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
 UDT_PATH = 
-VERSION = 1.2
+VERSION = 1.1
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 am__fastdepCC_FALSE = #
@@ -166,9 +168,12 @@ target_alias =
 target_cpu = i686
 target_os = linux-gnu
 target_vendor = pc
+ugw_testconn_SOURCES = testconn.cpp
 test_SOURCES = test.cpp
 test_DEPENDENCIES = ../lib/libudtgate.a
 test_LDADD = ../lib/libudtgate.a
+ugw_testconn_DEPENDENCIES = ../lib/libudtgate.a
+ugw_testconn_LDADD = ../lib/libudtgate.a
 all: all-am
 
 .SUFFIXES:
@@ -228,6 +233,9 @@ clean-binPROGRAMS:
 test$(EXEEXT): $(test_OBJECTS) $(test_DEPENDENCIES) 
 	@rm -f test$(EXEEXT)
 	$(CXXLINK) $(test_LDFLAGS) $(test_OBJECTS) $(test_LDADD) $(LIBS)
+ugw_testconn$(EXEEXT): $(ugw_testconn_OBJECTS) $(ugw_testconn_DEPENDENCIES) 
+	@rm -f ugw_testconn$(EXEEXT)
+	$(CXXLINK) $(ugw_testconn_LDFLAGS) $(ugw_testconn_OBJECTS) $(ugw_testconn_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -236,6 +244,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 include ./$(DEPDIR)/test.Po
+include ./$(DEPDIR)/testconn.Po
 
 .cpp.o:
 	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

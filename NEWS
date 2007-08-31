@@ -1,13 +1,15 @@
 
-    * 
-    * fixed: origin UDT CC support
+    * done:  UDT rendezvous mode support
+    * fixed: original UDT CC support (alfa)
+    *
+    * todo: generic socket api integration
 
 2007-08-24 Version 1.1 (beta)
     *
     * First release
     *
-	* todo: rendezvous mode
-	* todo: origin UDT CC (!)
+    * todo: UDT rendezvous mode support
+    * todo: original UDT CC (!)
     * todo: fix accurate UDP max buffer checking
     * todo: fix symmetrical access control: forbid passing udt->tcp connections
             to that hosts which are not accepted.

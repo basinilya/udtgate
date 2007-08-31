@@ -1,5 +1,5 @@
                UDTGATE - USER DATA TRANSPORT GATEWAY SYSTEM
-                             Ver 1.1 (20070824)
+                             Ver 1.1 (2007-08-24)
 
 DISCLAIMER
 
@@ -39,7 +39,7 @@ INTRODUCTION
 
   Currently UDTGATE package includes two applications:
 
-    * udtgate (planing only) - solution to establish OSI L4 overlay
+    * udtgate (planing for 2.x release) - solution to establish OSI L4 overlay
     networks with possibility to transparently route clients's network
     connection through several intermediate L4 gateways interacting
     with each other with UDT protocol.

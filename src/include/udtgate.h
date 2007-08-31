@@ -5,7 +5,6 @@
 #  ifndef Win32
 #    include <config.h>
 #    include <unistd.h>
-#    include <netdb.h>
 #    include <sys/socket.h>
 #    include <netdb.h>
 #    include <netinet/in.h>
