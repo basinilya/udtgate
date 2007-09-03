@@ -4,4 +4,5 @@ Makefile
 .externalToolBuilders
 udtgate-*.tar.gz
 configure.scan
+configure.log
 NEWS.sav
