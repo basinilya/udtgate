@@ -47,7 +47,7 @@ $newver = "$newmaj.$newmin";
 print "$ver -> $newver\n";
 
 my @date = localtime();
-my $date = sprintf("%04d-%02d-%02d",$date[5]+1900, $date[4], $date[3]);
+my $date = sprintf("%04d-%02d-%02d",$date[5]+1900, $date[4]+1, $date[3]);
 
 print "Enter date ($date):";
 

@@ -1,10 +1,12 @@
-2007-07-31 Version 1.2 (beta)
+2007-09-03 Version 1.2 (beta)
     * done:  UDT rendezvous mode support
     * fixed: original UDT CC support (alfa)
     *
     * todo: generic socket api integration
     * todo: fix symmetrical access control: forbid passing udt->tcp connections
             to that hosts which are not accepted.
+    * todo: fix accurate UDP max buffer checking: currenlty it is 64K for FreeBSD
+            and unlimited otherwise
 
 2007-08-24 Version 1.1 (beta)
     *
