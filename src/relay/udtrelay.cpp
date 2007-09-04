@@ -34,6 +34,9 @@ int   parse_udt_option (char * optstr);
 
 bool  is_custom_value(UDTOpt optcode);
 
+int udt_send_all (UDTSOCKET sock, char * data, int size);
+int tcp_send_all (int sock, char * data, size_t size);
+
 /**
  *  Check address against local interfaces/subnets
  *  returns true if match
@@ -41,6 +44,8 @@ bool  is_custom_value(UDTOpt optcode);
 bool check_source (sockaddr* addr, bool subnet);
 
 void exit_handler(int);
+
+sockaddr_in   addr_any;
 
 // GLOBAL SETTINGS
 int  net_access = 0; // network access 0 - loopback; 1 - local subnets; 2+ - any.
@@ -101,7 +106,8 @@ typedef map<UDTOpt, int> UDT_OPTIONS_T;
 
 UDT_OPTIONS_T udt_options;
 
-char* cc_lib[] = {"Vegas","TCP","ScalableTCP","HSTCP","BiCTCP", "Westwood", "FAST"};
+char* cc_lib[] = {"UDT", "Vegas","TCP","ScalableTCP","HSTCP",
+        "BiCTCP", "Westwood", "FAST"};
 char* ccc = "";
 
 extern char *optarg;
@@ -123,7 +129,7 @@ int main(int argc, char* argv[], char* envp[])
     char *usage = \
         "\nusage:\n"
         "\n"
-        "udtgate [OPTIONS] <socks_port> <peer_port> <peer_addr[:port]>  \n"
+        "udtrelay [OPTIONS] <socks_port> <peer_port> <peer_addr[:port]>  \n"
         "\n"
         "  <socks_port>       TCP ports to listen for incomming client socks connections.\n"
         "  <peer_port>        UDT/UDP port to use for incomming peer UDT connections.\n"
@@ -230,7 +236,7 @@ int main(int argc, char* argv[], char* envp[])
                     };
                 }
                 if (not ccc_ok)
-                    logger.log_die("\nUnsupported CC class (-C option): %s. Use -h for help\n",ccc);
+                    logger.log_die("\nUnsupported CC class (-c option): %s. Use -h for help\n",ccc);
             }
             break;
         case 'U':
@@ -242,7 +248,12 @@ int main(int argc, char* argv[], char* envp[])
             break;
         }
     }
+
     
+    addr_any.sin_family = AF_INET;
+    addr_any.sin_port = 0;
+    addr_any.sin_addr.s_addr = INADDR_ANY;
+
     if (setpgid(getpid(),getpid()) <0 ) {
 	perror("setgrp failed");
 	exit(1);
@@ -252,6 +263,10 @@ int main(int argc, char* argv[], char* envp[])
     logger.setDebugLevel(debug_level);
 
 
+    if ((0 == argc-optind))
+        logger.log_die("udtrelay (/%s/, build /%s/ with /UDT v%s/)\n%s", 
+                PACKAGE_STRING, __DATE__, "?.?", usage);
+    
     if ((3 > argc-optind))
         logger.log_die("missed arguments\n%s", usage);
 
@@ -289,6 +304,7 @@ int main(int argc, char* argv[], char* envp[])
           exit(0);
        }
        setsid();  /* Move into a new session */
+       logger.syslogOn();
        fclose(stdout);
        fclose(stderr);
     }
@@ -620,13 +636,23 @@ void* start_child(void *servsock) {
 
             UDTSOCKET peersock = UDT::socket(pPeeraddr->ai_family, pPeeraddr->ai_socktype, pPeeraddr->ai_protocol);
             setsockopt(peersock);
+            
+
+            sockaddr * bind_addr;
+            size_t     addr_len;
 
             if (rendezvous) {
-                if (UDT::ERROR == UDT::bind(peersock, pPeerRzvLocal->ai_addr, pPeerRzvLocal->ai_addrlen))
-                {
+                bind_addr = pPeerRzvLocal->ai_addr;
+                addr_len  = pPeerRzvLocal->ai_addrlen;
+            }
+            else {
+                bind_addr = (sockaddr*) &addr_any;
+                addr_len  = sizeof(sockaddr_in);
+            }
+            if (UDT::ERROR == UDT::bind(peersock, bind_addr, addr_len))
+            {
                     logger.log_die("udt bind: %s\n", UDT::getlasterror().getErrorMessage());
                     return 0;
-                }
             }
             
             logger.log_debug(1, "open UDT connection to: %s\n", utl::dump_inetaddr((sockaddr_in *) pPeeraddr->ai_addr, buf, true));
@@ -844,7 +870,7 @@ void* sock2peer_worker(void * ar )
             break;
         }
         logger.log_debug(3, "tcp recv %d bytes\n", sz);
-        if (UDT::send(pCargs->udtsock, data, sz, 0) == UDT::ERROR) {
+        if (udt_send_all(pCargs->udtsock, data, sz) == UDT::ERROR) {
             logger.log_err("udt send error: %s\n", UDT::getlasterror().getErrorMessage());
             break;
         }
@@ -890,7 +916,7 @@ void* peer2sock_worker(void* ar)
             pCargs->shutdown = 0;
             break;
         }
-        if (send (pCargs->tcpsock, data, sz, 0) == -1 ) {
+        if (tcp_send_all (pCargs->tcpsock, data, sz) == -1 ) {
             cerr << "send error" << endl;
             break;
         }
@@ -927,6 +953,29 @@ int parse_udt_option (char * optstr) {
     logger.log_die("\nUnknown UDT option: %s\n", optname);
     exit(1);
 }
+int udt_send_all (UDTSOCKET sock, char * data, int size) {
+    int sz;
+    for (sz = 0; sz < size;) {
+        int c;
+        c = UDT::send(sock, data+sz, size-sz,0);
+        if (c < 0)
+            return c;
+        sz += c;
+    }
+    return sz;
+}
+int tcp_send_all (int sock, char * data, size_t size) {
+    size_t sz;
+    for (sz = 0; sz < size;) {
+        int c;
+        c = send(sock, data+sz, size-sz, 0);
+        if (c < 0)
+            return c;
+        sz += c;
+    }
+    return sz;
+}
+
 void exit_handler(int sig) {
     logger.log_debug("got signal %d\n", sig);
 	kill(0,SIGTERM);
