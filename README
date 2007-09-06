@@ -1,5 +1,5 @@
                UDTGATE - USER DATA TRANSPORT GATEWAY SYSTEM
-                             Ver 1.3 (2007-09-04)
+                             Ver 1.3 (2007-09-06)
 
 DISCLAIMER
 
@@ -172,8 +172,9 @@ SUBMITTING BUG REPORTS AND FEATURE REQUESTS
   information about exactly what is wrong.
 
   To submit a bug report or feature requests, please use the web
-  interface in the <Tracker> section on
-  at http://sourceforge.net/projects/udtgate/
+  interface in the <Tracker> section on: 
+  
+  http://sourceforge.net/projects/udtgate/
   
 
 THANKS

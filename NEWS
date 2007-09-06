@@ -1,5 +1,19 @@
 2007-09-04 Version 1.3 (beta)
     *
+    * done:  identification of udtrelay binary
+    * done:  force bind to allocate new local UDP port for new conection
+    * fixed: symmetrical access control: forbid passing udt->tcp connections
+             to that hosts which are not accepted.
+    * fixed: send could loose data in udtrelay
+    * fixed: turn on syslog if daemon 
+    * fixed: minor bug: UDT CC explicitly
+    
+    * todo: generic socket api integration
+    * todo: fix accurate UDP max buffer checking: currenlty it is 64K for 
+            FreeBSD and unlimited otherwise
+     
+2007-09-04 Version 1.3 (beta)
+    *
     * done:  binary identification for udtrelay
     * fixed: send could loose data in udtrelay
     * fixed: turn on syslog if daemon 

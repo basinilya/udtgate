@@ -803,9 +803,9 @@ bool check_udp_buffer(UDTSOCKET sock, UDTOpt optcode) {
 
     if (size > *max_size) {
         if(is_custom_value(optcode))
-            logger.log_die(die_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF" , max_size);
+            logger.log_die(die_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF" , *max_size);
         if(!(*warned))
-            logger.log_warning(warn_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF", size, max_size);
+            logger.log_warning(warn_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF", size, *max_size);
         *warned = true;
         UDT::setsockopt(sock, 0, optcode, max_size, sizeof(int));
         return false;
