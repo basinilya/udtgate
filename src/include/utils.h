@@ -47,7 +47,7 @@ namespace utl {
     
     bool sockaddr_match(sockaddr* addr1, sockaddr* addr2, bool portcmp = false);
     void sockaddr_mask(sockaddr* dst, sockaddr* src);
-    bool check_source(int fd, sockaddr * addr, bool subnet);
+    bool check_source(sockaddr * addr, bool subnet);
     void memand (void * dst, void * src, size_t size);
 
 }

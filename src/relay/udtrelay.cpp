@@ -264,8 +264,8 @@ int main(int argc, char* argv[], char* envp[])
 
 
     if ((0 == argc-optind))
-        logger.log_die("udtrelay (/%s/, build /%s/ with /UDT v%s/)\n%s", 
-                PACKAGE_STRING, __DATE__, "?.?", usage);
+        logger.log_die("\nudtrelay (%s, build on \"%s\" with UDT v%s)\n\n%s\n\n", 
+                PACKAGE_STRING, __DATE__, "?.?", "try -h for help");
     
     if ((3 > argc-optind))
         logger.log_die("missed arguments\n%s", usage);
@@ -310,7 +310,7 @@ int main(int argc, char* argv[], char* envp[])
     }
 
     logger.log_info("");
-    logger.log_info("Starting.\n");
+    logger.log_info("Starting %s (%s).\n", app_ident, PACKAGE_VERSION);
     
     do { // just block
     	int pid = 0;
@@ -502,7 +502,7 @@ int main(int argc, char* argv[], char* envp[])
             
             if (net_access < 2) { // not -N -N options
             	bool subnet = net_access > 0 ? true: false; // at least -N option - subnet mode
-            	if ( not utl::check_source(atcpsock, (sockaddr *)&clientaddr, subnet)) {
+            	if ( not utl::check_source((sockaddr *)&clientaddr, subnet)) {
             		close(atcpsock);
             		logger.log_notice("rejected socks connection: %s:%s\n", clienthost, clientservice);
             		continue;
@@ -591,6 +591,18 @@ void* start_child(void *servsock) {
             paddr.sin_port = *(short unsigned*) spkt.dstport;
 
             memcpy(&paddr.sin_addr, spkt.dstip, 4);
+            
+            if (net_access < 2) { // not -N -N options
+                bool subnet = net_access > 0 ? true: false; // at least -N option - subnet mode
+                if ( not utl::check_source((sockaddr *)&paddr, subnet)) {
+                    char buf[50];
+                    spkt.cd = 92;
+                    UDT::send(cargs.udtsock,(char*) &spkt, sizeof(spkt), 0);
+                    logger.log_warning("rejected incoming connection to: %s\n", 
+                            utl::dump_inetaddr(&paddr, buf, true));
+                    break;
+                }
+            }
 
             if (connect(peersock, (sockaddr*) &paddr, sizeof(paddr)) == -1) {
                 spkt.cd = 92;
@@ -718,56 +730,90 @@ bool check_udp_buffer(UDTSOCKET sock, UDTOpt optcode) {
 
     bool sysctl_ok = false;
 
-    int unsigned size;
-    int unsigned max_size = 0; // not limited
+    int unsigned   size;
+    int unsigned * max_size; // maximal system size
+    int unsigned * chk_size; // maximal size succesfully binded
+    bool         * warned;   // if already warned about size correction.
+    int unsigned   so_opt;
+    
     int nlen, optsz;
     size_t    *szptr;
 
-    assert(optcode == UDP_RCVBUF || optcode == UDP_SNDBUF);
-
-    UDT::getsockopt(sock, 0, optcode, &size, &optsz);
-
-/*
-#ifdef 	OS_FREEBSD
-    int var[] = {CTL_KERN, KERN_IPC, KIPC_MAXSOCKBUF}; // "kern.ipc.maxsockbuf";
-    nlen = 3;
-    sysctl_ok = true;
-#endif
-#ifdef	OS_LINUX
-    int rvar[] = {CTL_NET, NET_CORE, NET_CORE_RMEM_MAX}; // "net.core.rmem_max";
-    int wvar[] = {CTL_NET, NET_CORE, NET_CORE_WMEM_MAX}; // "net.core.wmem_max";
-    int * var;
-    var = optcode == UDP_RCVBUF ? rvar : wvar;
-    nlen = 3;
-    sysctl_ok = true;
-#endif
-
-    if (sysctl_ok)
-        sysctl(var, nlen, &max_size, szptr, NULL, 0);
-*/
-
-#ifdef 	OS_FREEBSD
-    max_size = 64*1024;
-#endif
-    
-    if (max_size == 0)
-        return true; 
-    
     char* die_format = "requested custom %s value is too big. Maximal possible size = %d\n";
-    char* warn_format = "default %s = %d is reduced to the maximal possible system size = %d\n";
+    char* warn_format = "default %s = %d is reduced to the maximal possible detected system size = %d\n";
+    
+    static int unsigned rcv_chk_size = 0;
+    static int unsigned snd_chk_size = 0;
+    
+    static int unsigned rcv_max_size = 0;
+    static int unsigned snd_max_size = 0;
 
-    if (is_custom_value(optcode)) {
-        if (max_size and size > max_size) {
-            logger.log_die(die_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF" , max_size);
+    static bool rcv_warned = false;
+    static bool snd_warned = false;
+    
+
+    assert(optcode == UDP_RCVBUF || optcode == UDP_SNDBUF);
+    
+    if (optcode == UDP_RCVBUF) {
+        max_size = &rcv_max_size;
+        chk_size = &rcv_chk_size;
+        warned = &rcv_warned;
+        so_opt = SO_RCVBUF;
+    }
+    else {
+        max_size = &snd_max_size;
+        chk_size = &snd_chk_size;
+        warned = &snd_warned;
+        so_opt = SO_SNDBUF;
+    }
+    
+    // get requeste size
+    if (is_custom_value(optcode))
+        size = udt_options[optcode]; 
+    else
+        UDT::getsockopt(sock, 0, optcode, &size, &optsz);
+    
+    if (*chk_size > 0 and size <= *chk_size)
+        return true; 
+
+    if (0 == *max_size) {
+        sockaddr_in sa;
+        
+        sa.sin_family      = AF_INET;        
+        sa.sin_port        = 0;
+        sa.sin_addr.s_addr = INADDR_ANY;
+        
+        int sd = socket(AF_INET, SOCK_DGRAM, 0);
+        
+        for (int sz = size; sz > 8096; *max_size = sz = sz / 2) {
+            if (
+                    setsockopt(sd, SOL_SOCKET, so_opt, &sz, sizeof(int)) == 0 and 
+                    bind(sd, (sockaddr*) &sa, sizeof(sockaddr_in)) == 0
+                    ) {
+                close(sd);
+                if (*chk_size < sz) *chk_size = sz;
+                if (*max_size == 0) return true;
+                break;
+            }
         }
-        else
-            UDT::setsockopt(sock, 0, optcode, &udt_options[optcode], sizeof(int));
+        close(sd);
+    }
+    
+    // max_size has been initialized above!
+
+    if (size > *max_size) {
+        if(is_custom_value(optcode))
+            logger.log_die(die_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF" , max_size);
+        if(!(*warned))
+            logger.log_warning(warn_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF", size, max_size);
+        *warned = true;
+        UDT::setsockopt(sock, 0, optcode, max_size, sizeof(int));
+        return false;
     }
     else
-        if (size > max_size) {
-            UDT::setsockopt(sock, 0, optcode, &max_size, sizeof(int));
-            logger.log_warning(warn_format, optcode == UDP_RCVBUF ? "UDP_RCVBUF" : "UDP_SNDBUF", size, max_size);
-        }
+        UDT::setsockopt(sock, 0, optcode, &size, sizeof(int));
+
+    return true;
 }
 
 void setsockopt(UDTSOCKET sock) {

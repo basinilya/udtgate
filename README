@@ -15,6 +15,7 @@ TABLE OF CONTENTS
   Table Of Contents
   Introduction
   Supported Architectures
+  Prerequestives
   Availability
   Installation
   Copying And Copyrights
@@ -47,7 +48,8 @@ INTRODUCTION
     and
 
     * udtrelay - lightweight proxy allowing to pass TCP connections
-    between two sites trough UDT tunnel.
+    between two sites trough UDT tunnel. 
+    See README.udtrelay for details.
 
 
 SUPPORTED ARCHITECTURES
@@ -91,6 +93,22 @@ AVAILABILITY
   Mirrors:
     - none yet
 
+PREREQUESTIVES
+
+   * UDT package (mandatory) 
+     
+     http://udt.sourceforge.net
+   
+   * Install package to "socksify" applications (optional).
+
+     - For Unix    - runsocks
+       see ports or download:
+       http://freeware.sgi.com/source/socks5/
+       
+     - For Windows - SocksCap
+       http://www.socks.permeo.com/
+
+     
 INSTALLATION
 
   See the INSTALL file distributed with this package.

@@ -5,4 +5,5 @@ Makefile
 udtgate-*.tar.gz
 configure.scan
 configure.log
+config.log
 NEWS.sav

@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    if (utl::check_source(fd, (sockaddr*) &addr, subnet))
+    if (utl::check_source((sockaddr*) &addr, subnet))
         printf("Matched\n");
     else
         printf("Not matched\n");

@@ -59,7 +59,7 @@ namespace utl {
     ////
      //Check if the address match local interfaces or subnets
      ///
-    bool check_source (int fd, sockaddr * addr, bool subnet) {
+    bool check_source (sockaddr * addr, bool subnet) {
 
         char addr_str[256];
         char * where = "check_source:";

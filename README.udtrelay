@@ -1,0 +1,72 @@
+UDTRELAY - proxy application to pass user's application networks
+           requests over high-speed UDT tunnels.
+
+DESCRIPTION
+
+  Udtrelay runs as socks4 servers for applications. All incoming requests are 
+  forwarded to UDT tunnel pointed to other udtrelay on remote site.
+
+SCENARIO
+
+  [           SITE1           ]                         [       SITE2          ]
+   appl1 -(socks4)-> udtrelay <........UDT tunnel.......> udtrelay -----> appl2 
+
+EXAMPLES RUNING UDTRELAY
+
+ * Basic setup 
+ 
+   site1$ udtrelay 1080 9000 site2
+ 
+   site2$ udtrelay 1080 9000 site1
+   
+   Each instance is listening for socks4 requests from applications at port 
+   tcp/1080 and passes it to remote instance port udp/9000. 
+   
+ * Rendezvous mode setup
+
+   Rendezvous mode facilitates firewall traversing since each site periodically 
+   tries to "connect" to another and creates translation slot at firewall.
+    
+ 
+   site1$ udtrelay -R 9001 1080 9000 site2
+ 
+   site2$ udtrelay -R 9001 1080 9000 site1
+   
+   Each instance while playing as server binds udp/9000 and tries to "connect" 
+   to remote "rendezvous" client's port udp/9001. When remote instance is about 
+   to send client's connection request, it binds "rendezvous" udp/9001 port and 
+   connects to server's udp/9000 port.
+   
+ACCESS CONTROL
+
+  By default, udtrelay process connection requests only from/to localhost. 
+  T.e. source address in socks requests should match one of interfaces 
+  and final destination address in incoming requests from remote side should 
+  also match one of interfaces.
+  
+  It can use -N option to allow requests from/to local subnets.
+      
+  If you use -N option twice access control will be disabled.
+  
+PARTIAL FUNCTIONALITY
+  
+  udtrelay allows to disable connections incoming from a remote site or outgoing
+  to a remote site.
+  
+  -C don't accept incoming connection from remote site
+  -S don't accept outgoing connection to remote site
+  
+
+LOGGING AND DEBUGING
+   
+   By default stdout/stderr are used for diagnostic messages.
+   If the application is daemonized with -D option it uses syslog with 'daemon'
+   facility.
+   
+   -L option turns on the connection tracking.
+   
+   -d option increase debug level, maximal debug level is 3 (-d -d -d).
+      this option also turns the connection tracking on.
+      
+    All unsuccessful or rejected connections are logged anyway.  
+    
