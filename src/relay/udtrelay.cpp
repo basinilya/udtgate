@@ -50,9 +50,11 @@ sockaddr_in   addr_any;
 // GLOBAL SETTINGS
 int  net_access = 0; // network access 0 - loopback; 1 - local subnets; 2+ - any.
 int  debug_level = 0;
+int  dump_message = 0;
 bool track_connections = false;
 bool rendezvous = false;
 bool demonize = false;
+
 // GLOBAL SETTINGS
 
 char * app_ident   = "udtrelay";
@@ -119,7 +121,7 @@ int main(int argc, char* argv[], char* envp[])
 {
 
     int c;
-    static char optstring [] = "hdDNLCSP:R:B:c:U:";
+    static char optstring [] = "hdDNLCSP:R:B:c:U:X:";
     opterr=0;
     UDTSOCKET ludtsock;
     int       ltcpsock = 0;
@@ -141,6 +143,10 @@ int main(int argc, char* argv[], char* envp[])
         "  OPTIONS: \n"
         "    -h               How this help and exit.\n"
         "    -d               Encrease debug level.\n"
+        "    -X <len>         dump fisrt <len> bytes as ASCII from each message.\n"
+        "                     this option also sets maximal debug level.\n"
+        "                     if debug level was set to 3 than default value of\n"
+        "                     this option is 20\n"
         "    -D               Demonize.\n"
         "    -L               Log connections (by default - in the debug mode)\n"
         "    -N               Allow socks connections from attached subnets \n"
@@ -184,6 +190,11 @@ int main(int argc, char* argv[], char* envp[])
             break;
         case 'd':
             debug_level++;
+            break;
+        case 'X':
+            dump_message = atoi(optarg);
+            if (dump_message <= 0 or dump_message > 10000)
+                logger.log_die("Wrong -X option value\n%s", usage);
             break;
         case 'D':
             demonize = true;
@@ -259,9 +270,14 @@ int main(int argc, char* argv[], char* envp[])
 	exit(1);
     }
     
-
+    if(debug_level > 3)
+        debug_level = 3;
+    if(dump_message > 0)
+        debug_level = 3;
+    if(debug_level == 3 and dump_message == 0)
+        dump_message = 20;
+        
     logger.setDebugLevel(debug_level);
-
 
     if ((0 == argc-optind))
         logger.log_die("\nudtrelay (%s, build on \"%s\" with UDT v%s)\n\n%s\n\n", 
@@ -630,13 +646,13 @@ void* start_child(void *servsock) {
                 logger.log_warning("wrong socks version; connection closed\n");
                 spkt.cd = 91;
                 send(cargs.tcpsock,&spkt, sizeof(spkt), 0);
-                return 0;
+                break;
             }
             if(spkt.cd != 1) {
                 logger.log_warning("wrong command - only connect is supported\n");
                 spkt.cd = 90;
                 send(cargs.tcpsock,&spkt, sizeof(spkt), 0);
-                return 0;
+                break;
             }
             
             do {
@@ -693,7 +709,7 @@ void* start_child(void *servsock) {
             logger.log_debug(2, "tcp <- soks send\n");
 
             if (spkt.cd != 90) {
-                logger.log_err("remote peeer socks error\n");
+                logger.log_err("remote peer socks error\n");
                 break;
             }
 
@@ -915,12 +931,16 @@ void* sock2peer_worker(void * ar )
         if (sz == 0) {
             break;
         }
-        logger.log_debug(3, "tcp recv %d bytes\n", sz);
+        //logger.log_debug(3, "tcp recv %d bytes\n", sz);
         if (udt_send_all(pCargs->udtsock, data, sz) == UDT::ERROR) {
             logger.log_err("udt send error: %s\n", UDT::getlasterror().getErrorMessage());
             break;
         }
-        logger.log_debug(3, "udt send %d bytes\n", sz);
+
+        char str[dump_message*5+10];
+        logger.log_debug(3,"  tcp->udt %d bytes: [%s]\n", sz, 
+                utl::dump_str(str, data, rcvbuffer, sz, dump_message));
+        //logger.log_debug(3, "udt send %d bytes\n", sz);
     }
 
     delete [] data;
@@ -933,6 +953,9 @@ void* sock2peer_worker(void * ar )
     logger.log_debug(2, "stop tcp->udt thread\n");
     return NULL;
 }
+
+
+
 void* peer2sock_worker(void* ar)
 {
     cargs_t * pCargs = (cargs_t *) ar;
@@ -949,7 +972,7 @@ void* peer2sock_worker(void* ar)
             //cout << "###" << endl;
             if (pCargs->shutdown) break;
         } while (sz == 0);
-        logger.log_debug(3,"udt recv %d bytes\n", sz);
+        //logger.log_debug(3,"udt recv %d bytes\n", sz);
         if (pCargs->shutdown)
             break;
         if (UDT::ERROR == sz)
@@ -966,7 +989,10 @@ void* peer2sock_worker(void* ar)
             cerr << "send error" << endl;
             break;
         }
-        logger.log_debug(3,"tcp send %d bytes\n", sz);
+
+        char str[dump_message*5+10];
+        logger.log_debug(3,"  udt->tcp %d bytes: [%s]\n", sz, 
+                utl::dump_str(str, data, rcvbuffer, sz, dump_message));
     }
 
     delete [] data;
