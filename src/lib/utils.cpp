@@ -18,10 +18,31 @@ namespace utl {
                 ntohs(iaddr->sin_port));
     	else
     	    sprintf(buf,"%s",inet_ntoa(iaddr->sin_addr));
-    		
+
         return buf;
     }
-    
+    char * dump_str(char * str, char * buf, int buf_sz, int rcv_sz, int prn_sz) {
+        int sz;
+        // get minimal
+        sz = buf_sz < rcv_sz ? buf_sz : rcv_sz;
+        sz = sz  < prn_sz ? sz  : prn_sz;
+        int p = 0;
+        for (int i = 0; i < sz; i++) {
+            char c = buf[i];
+            if (c >= ' ' and c <= '~') {
+                str[i] = c;
+                ++p;
+            }
+            else
+                p += sprintf(str+p,"<%03d>", c);
+        }
+        if (prn_sz < rcv_sz) {
+            p += sprintf(str+p,"...");
+        }
+        str[++p] = '\0';
+        return str;
+    }
+
     string get_string (stringstream& is) {
         string s; is >> s; return s;
     }
@@ -68,7 +89,7 @@ namespace utl {
         af = addr->sa_family;
 
         dump_inetaddr((sockaddr_in*) addr, addr_str);
-       
+
 #if HAVE_GETIFADDRS
         struct ifaddrs *ifp, *ifap;
         if(::getifaddrs(&ifap)<0)
@@ -92,23 +113,23 @@ namespace utl {
                 sockaddr_mask(&addr1,ifp->ifa_netmask);
                 sockaddr_mask(ifp->ifa_addr,ifp->ifa_netmask);
             }
-            
+
             if (logger.getDebugLevel()) {
                 char addr1_str[256], ifaddr_str[256];
                 dump_inetaddr((sockaddr_in*) &addr1, addr1_str);
                 dump_inetaddr((sockaddr_in*) ifp->ifa_addr, ifaddr_str);
-                
+
                 logger.log_debug("%s matching %s against %s -> %s\n",where, addr1_str, ifp->ifa_name, ifaddr_str);
             }
             if(sockaddr_match(&addr1,ifp->ifa_addr)) {
-            	logger.log_debug("%s connecting %s matched against %s\n", 
+            	logger.log_debug("%s connecting %s matched against %s\n",
             			where, addr_str,ifp->ifa_name);
                 ::freeifaddrs(ifap);
                 return true;
             }
         }
         logger.log_debug("%s no match\n", where);
-        
+
         ::freeifaddrs(ifap);
 #else
 #  error getifaddr no relized!
@@ -168,102 +189,32 @@ namespace utl {
         for(dst1 = (char*) dst, src1 = (char*) src; size>0; size--, dst1++, src1++)
             *dst1 &= *src1;
     }
+    int udt_send_all (UDTSOCKET sock, char * data, int size) {
+        int sz;
+        for (sz = 0; sz < size;) {
+            int c;
+            c = UDT::send(sock, data+sz, size-sz,0);
+            if (c < 0) {
+                if (errno == EINTR)
+                    continue;
+                return c;
+            }
+            sz += c;
+        }
+        return sz;
+    }
+    int tcp_send_all (int sock, char * data, size_t size) {
+        size_t sz;
+        for (sz = 0; sz < size;) {
+            int c;
+            c = send(sock, data+sz, size-sz, 0);
+            if (c < 0) {
+                if (errno == EINTR)
+                    continue;
+                return c;
+            }
+            sz += c;
+        }
+        return sz;
+    }
 }
-
-/*
- struct ifconf ifc;
- struct ifreq * ifr;
- int ifn; // number of interfaces
- int ifstep = 16; // incremental step
- int af;
-
-
- getifaddrs();
-
- printf("addr = %s\n", buf);
-
- af = addr->sa_family;
-
- ifc.ifc_buf = NULL;
-
-
- for (ifn = ifstep, ifc.ifc_len = ifn*sizeof(ifreq); ifc.ifc_len == ifn * sizeof(ifreq); ifn +=ifstep) {
- ifc.ifc_buf = (char*) realloc (ifc.ifc_buf, ifn * sizeof(ifreq));
- ifc.ifc_len = ifn * sizeof(ifreq);
- if (ioctl(fd,SIOCGIFCONF, &ifc) < 0) {
- perror("check_source: ioctl");
- free(ifc.ifc_buf);
- return false;
- }
- }
- printf(" ifn = %d\n", ifc.ifc_len / sizeof(ifreq));
-
- getifaddrs();
-
- for (ifr = (ifreq *) ifc.ifc_buf; ifr < (ifreq *) (ifc.ifc_buf + ifc.ifc_len); ifr++)
- printf("1:>>> %s\n", ifr->ifr_name);
-
- for (ifr = (ifreq *) ifc.ifc_buf; ifr < (ifreq *) (ifc.ifc_buf + ifc.ifc_len); ifr++) {
-
- printf("2:>>> %s\n", ifr->ifr_name);
-
- char unsigned abuf[16];
- char unsigned ibuf[16];
- char unsigned mbuf[16];
-
- ifreq ifa, ifm;
-
- ifa = ifm = *ifr;
-
- if (ioctl(fd, SIOCGIFADDR, &ifa) < 0) {
- perror("");
- logger.log_err("%s ioctl/SIOCGIFADDR failed\n", where);
- free(ifc.ifc_buf);
- return false;
- }
- if (ioctl(fd, SIOCGIFNETMASK, &ifm) < 0) {
- logger.log_err("%s ioctl/SIOCGINETFMASK failed\n", where);
- free(ifc.ifc_buf);
- return false;
- }
-
- int  alen;
-
- switch (af) {
- case AF_INET:
- alen =  sizeof((reinterpret_cast<sockaddr_in*>(addr))->sin_addr);
- memcpy(abuf, & (reinterpret_cast<sockaddr_in*>(addr))->sin_addr, alen);
- memcpy(ibuf, & (reinterpret_cast<sockaddr_in*>(&ifa.ifr_addr))->sin_addr, alen);
- memcpy(mbuf, & (reinterpret_cast<sockaddr_in*>(&ifm.ifr_addr))->sin_addr, alen);
- break;
- case AF_INET6:
- alen =  sizeof((reinterpret_cast<sockaddr_in6*>(addr))->sin6_addr);
- memcpy(abuf, & (reinterpret_cast<sockaddr_in6*>(addr))->sin6_addr, alen);
- memcpy(ibuf, & (reinterpret_cast<sockaddr_in6*>(&ifa.ifr_addr))->sin6_addr, alen);
- memcpy(mbuf, & (reinterpret_cast<sockaddr_in6*>(&ifm.ifr_addr))->sin6_addr, alen);
- break;
- default:
- logger.log_die("%s wrong address family: %d\n", where, af);
- }
-
- //printf("mbuf: %d.%d.%d.%d\n", mbuf[0], mbuf[1],  mbuf[2],  mbuf[3]);
- //printf("ibuf: %d.%d.%d.%d\n", ibuf[0], ibuf[1],  ibuf[2],  ibuf[3]);
- //printf("abuf: %d.%d.%d.%d\n", abuf[0], abuf[1],  abuf[2],  abuf[3]);
- //printf("---\n");
-
- if (subnet) for(int i=0; i<alen; i++) { // apply mask in the "subnet" mode;
- abuf[i] &= mbuf[i];
- ibuf[i] &= mbuf[i];
- }
- //printf("mbuf: %d.%d.%d.%d\n", mbuf[0], mbuf[1],  mbuf[2],  mbuf[3]);
- //printf("ibuf: %d.%d.%d.%d\n", ibuf[0], ibuf[1],  ibuf[2],  ibuf[3]);
- //printf("abuf: %d.%d.%d.%d\n", abuf[0], abuf[1],  abuf[2],  abuf[3]);
-
- if (!memcmp(abuf, ibuf, alen)) {
- free(ifc.ifc_buf);
- return true;
- }
- }
-
- free(ifc.ifc_buf);
- */

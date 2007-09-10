@@ -15,6 +15,7 @@
 #include <sstream>
 #include <assert.h>
 #include <stdlib.h>
+#include <udt/udt.h>
 
 
 #define DEBUG 1
@@ -44,11 +45,15 @@ namespace utl {
     int resolvAddress (string addr);
 
     char* dump_inetaddr(struct ::sockaddr_in * iaddr, char * buf, bool port=0);
+    char* dump_str(char* str, char* buf, int sz1, int sz2, int sz3);
     
     bool sockaddr_match(sockaddr* addr1, sockaddr* addr2, bool portcmp = false);
     void sockaddr_mask(sockaddr* dst, sockaddr* src);
     bool check_source(sockaddr * addr, bool subnet);
     void memand (void * dst, void * src, size_t size);
-
+    int worker(int sd1, int sd2);
+    
+    int tcp_send_all (int sock, char * data, size_t size);
+    int udt_send_all (UDTSOCKET sock, char * data, int size);
 }
 #endif

@@ -1,32 +1,37 @@
 #include <socket_api.h>
+#include <unistd.h>
+#include <stdarg.h>
+
+extern int errno;
+
+SOCK_API::FDSET::FDSET() {}
+SOCK_API::FDSET::~FDSET() {}
+
+void SOCK_API::FDSET::ZERO() {
+    udset.clear();
+    FD_ZERO(&fdset);
+}
+void SOCK_API::FDSET::SET(UDTSOCKET sd) {
+    if (sd < UDT_FD_BASE)
+        FD_SET(static_cast<int>(sd), &fdset);
+    else
+        UD_SET(sd-UDT_FD_BASE, &udset);
+}
+void SOCK_API::FDSET::CLR(UDTSOCKET sd) {
+    if (sd < UDT_FD_BASE)
+        FD_CLR(static_cast<int>(sd), &fdset);
+    else
+        UD_CLR(sd-UDT_FD_BASE, &udset);
+}
+bool SOCK_API::FDSET::ISSET(UDTSOCKET sd) {
+    if (sd < UDT_FD_BASE)
+        return FD_ISSET(static_cast<int>(sd), &fdset);
+    else
+        return UD_ISSET(sd-UDT_FD_BASE, &udset);
+}
 
 namespace SOCK_API {
 
-    FDSET::FDSET() {}
-    FDSET::~FDSET() {}
-
-    void FDSET::ZERO() {
-        udset.clear();
-        FD_ZERO(&fdset);
-    }
-    void FDSET::SET(UDTSOCKET sd) {
-        if (sd < UDT_FD_BASE)
-            FD_SET(static_cast<int>(sd), &fdset);
-        else
-            UD_SET(sd-UDT_FD_BASE, &udset);
-    }
-    void FDSET::CLR(UDTSOCKET sd) {
-        if (sd < UDT_FD_BASE)
-            FD_CLR(static_cast<int>(sd), &fdset);
-        else
-            UD_CLR(sd-UDT_FD_BASE, &udset);
-    }
-    bool FDSET::ISSET(UDTSOCKET sd) {
-        if (sd < UDT_FD_BASE)
-            return FD_ISSET(static_cast<int>(sd), &fdset);
-        else
-            return UD_ISSET(sd-UDT_FD_BASE, &udset);
-    }
 
     UDTSOCKET socket(int domain, int type, _proto_t proto) {
         if (proto == TCP)
@@ -64,19 +69,82 @@ namespace SOCK_API {
             return res;
         }
     }
-    int send(UDTSOCKET sd, void *buff, size_t n, int flags) {
-        if (sd < UDT_FD_BASE)
-            return ::send(static_cast<int>(sd), buff, n, flags);
-        else
-            return ::UDT::send(sd-UDT_FD_BASE, static_cast<char*>(buff), n, flags);
-    }
     int recv(UDTSOCKET sd, void *buff, size_t n, int flags) {
         if (sd < UDT_FD_BASE)
             ::recv(static_cast<int>(sd), buff, n, flags);
-
-        else
-            ::UDT::recv(sd-UDT_FD_BASE, static_cast<char*>(buff), n, flags);
+        else {
+            int rc = ::UDT::recv(sd-UDT_FD_BASE, static_cast<char*>(buff), n, flags);
+            return rc == ::UDT::ERROR ? -1 : rc;
+        }
     }
+    int send(UDTSOCKET sd, void *buff, size_t n, int flags) {
+        if (sd < UDT_FD_BASE)
+            return ::send(static_cast<int>(sd), buff, n, flags);
+        else {
+            int rc =  ::UDT::send(sd-UDT_FD_BASE, static_cast<char*>(buff), n, flags);
+            return rc == ::UDT::ERROR ? -1 : rc;
+        }
+        
+    }
+    int read(UDTSOCKET sd, void *buff, size_t n) {
+        if (sd < UDT_FD_BASE)
+            return ::read(static_cast<int>(sd), buff, n);
+        else {
+            int rc = ::UDT::recv(sd-UDT_FD_BASE, static_cast<char*>(buff), n, 0);
+            return rc == ::UDT::ERROR ? -1 : rc;
+        }
+    }
+    int readn(UDTSOCKET sd, void *buff, size_t n, int timeout) {
+        size_t   nleft;
+        ssize_t  nread;
+        char   *ptr;
+        
+        ptr = (char*) buff;
+        nleft = n;
+        
+        while(nleft > 0) {
+            if ( (nread = read(sd,ptr,nleft)) < 0) {
+                if(errno == EINTR)
+                    nread = 0;
+                else
+                    return (-1);
+            }
+            else if (nread == 0)
+                break;
+            nleft -= nread;
+            ptr   += nread;
+        }
+        return (n-nleft);
+    }
+    int write(UDTSOCKET sd, void *buff, size_t n, int timeout) {
+        if (sd < UDT_FD_BASE)
+            return ::write(static_cast<int>(sd), buff, n);
+        else {
+            int rc = ::UDT::send(sd-UDT_FD_BASE, static_cast<char*>(buff), n, 0);
+            return rc == ::UDT::ERROR ? -1 : rc;
+        }
+    }
+    int writen(UDTSOCKET sd, void *buff, size_t n) {
+        size_t   nleft;
+        ssize_t  nwritten;
+        char   *ptr;
+        
+        ptr = (char*) buff;
+        nleft = n;
+        
+        while(nleft > 0) {
+            if ( (n = read(sd,ptr,nleft)) <= 0) {
+                if(errno == EINTR)
+                    nwritten = 0;
+                else
+                    return (-1);
+            }
+            nleft -= nwritten;
+            ptr   += nwritten;
+        }
+        return (n-nleft);
+    }
+    
     int recvmsg(UDTSOCKET sd, msghdr *message, int flags) {
         if (sd < UDT_FD_BASE)
             return ::recvmsg(static_cast<int>(sd), message, flags);
@@ -86,8 +154,10 @@ namespace SOCK_API {
     int recvmsg(UDTSOCKET sd, char *buff, size_t n) {
         if (sd < UDT_FD_BASE)
             return -1; // not proper for TCP
-        else
-            return ::UDT::recvmsg(sd-UDT_FD_BASE, buff, n);
+        else {
+            int rc = ::UDT::recvmsg(sd-UDT_FD_BASE, buff, n);
+            return rc == ::UDT::ERROR ? -1 : rc;
+        }
     }
     int sendmsg(UDTSOCKET sd, msghdr *message, int flags) {
         if (sd < UDT_FD_BASE)
@@ -98,8 +168,10 @@ namespace SOCK_API {
     int sendmsg(UDTSOCKET sd, const char *buff, size_t n){
         if (sd < UDT_FD_BASE)
             return -1;
-        else
-            return ::UDT::sendmsg(sd-UDT_FD_BASE, buff, n);
+        else {
+            int rc = ::UDT::sendmsg(sd-UDT_FD_BASE, buff, n);
+            return rc == ::UDT::ERROR ? -1 : rc;
+        }
     }
     int close(UDTSOCKET sd){
         if (sd < UDT_FD_BASE)
@@ -170,5 +242,9 @@ namespace SOCK_API {
                 return (res1 > 0 ? res1 : 0) + (res2 > 0 ? res2 : 0);
             }
         }
+    }
+    
+    int maxfdn (...) {
+        
     }
 }

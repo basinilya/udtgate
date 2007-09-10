@@ -57,7 +57,8 @@ ARFLAGS = cru
 libudtgate_a_AR = $(AR) $(ARFLAGS)
 libudtgate_a_LIBADD =
 am_libudtgate_a_OBJECTS = socket_api.$(OBJEXT) utils.$(OBJEXT) \
-	logger.$(OBJEXT) setproctitle.$(OBJEXT)
+	logger.$(OBJEXT) setproctitle.$(OBJEXT) worker.$(OBJEXT) \
+	udtgate.$(OBJEXT)
 libudtgate_a_OBJECTS = $(am_libudtgate_a_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)/src/include
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -178,7 +179,8 @@ target_vendor = @target_vendor@
 noinst_LIBRARIES = libudtgate.a
 libudtgate_a_SOURCES = socket_api.cpp utils.cpp logger.cpp  setproctitle.cpp\
 			../include/socket_api.h ../include/utils.h \
-            ../include/logger.h ../include/setproctitle.h
+            		../include/logger.h ../include/setproctitle.h worker.cpp \
+			udtgate.cpp
 
 noinst_HEADERS = ../include/udtgate.h
 all: all-am
@@ -231,7 +233,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setproctitle.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/socket_api.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/udtgate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/utils.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/worker.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

@@ -42,6 +42,43 @@ struct cargs_t {
     int       shutdown;
 };
 
+
+class globals {
+public:
+    static int  net_access; // network access 0 - loopback; 1 - local subnets; 2+ - any.
+    static int  debug_level;
+    static int  dump_message;
+    static bool track_connections;
+    static bool rendezvous;
+    static bool demonize;
+#ifdef UDP_BASEPORT_OPTION
+    static int baseport;
+    static int maxport;
+#endif
+    static char * sock_ident;
+    static char * peer_ident;
+
+    static char * app_ident;
+    static char * serv_ident;
+
+    static void init_globals () {
+        net_access = 0;
+        debug_level = 0;
+        dump_message = 16;
+        track_connections = false;
+        rendezvous = false;
+        demonize = false;
+#ifdef UDP_BASEPORT_OPTION
+        baseport = 0;
+        maxport = 0;
+#endif
+        app_ident   = "udtrelay";
+        sock_ident =  "sock2peer server";
+        peer_ident  = "peer2sock server";
+        serv_ident  = app_ident;
+    }
+};
+
 #pragma pack(1)
 struct sock_pkt {
     char vn;

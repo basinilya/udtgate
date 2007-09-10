@@ -18,11 +18,13 @@ namespace SOCK_API
 
         FDSET ();
         ~FDSET ();
-        inline void ZERO();
-        inline void SET(UDTSOCKET sd);
-        inline void CLR(UDTSOCKET sd);
-        inline bool ISSET(UDTSOCKET sd);
+        void ZERO();
+        void SET(UDTSOCKET sd);
+        void CLR(UDTSOCKET sd);
+        bool ISSET(UDTSOCKET sd);
     };
+
+    UDTSOCKET socket(int domain, int type, _proto_t proto);
 
     int bind    (UDTSOCKET sd, sockaddr* addr, socklen_t socklen);
 
@@ -35,6 +37,13 @@ namespace SOCK_API
     int send    (UDTSOCKET sd, void *buff, size_t n, int flags);
 
     int recv    (UDTSOCKET sd, void *buff, size_t n, int flags);
+    
+    int read     (UDTSOCKET sd, void *buff, size_t n);
+    int readn    (UDTSOCKET sd, void *buff, size_t n, int timeout=0);
+
+    int write    (UDTSOCKET sd, void *buff, size_t n);
+    int writen   (UDTSOCKET sd, void *buff, size_t n, int timeout=0);
+
 
     int recvmsg (UDTSOCKET sd, msghdr *message, int flags);
     int recvmsg (UDTSOCKET sd, const char *buff, size_t n);
@@ -42,14 +51,16 @@ namespace SOCK_API
     int sendmsg (UDTSOCKET sd, msghdr *message, int flags);
     int sendmsg (UDTSOCKET sd, const char *buff, size_t n);
 
-    int select  (int nfds, FDSET rdfds, FDSET* wfds, FDSET* efds, const struct timeval* timeout);
+    int select  (int nfds, FDSET* rfds, FDSET* wfds, FDSET* efds, const struct timeval* timeout);
 
     int close();
     int shutdown(int how);
 
     int setsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t optlen);
     int getsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t* optlenp);
-
+    
+    int maxfdn(...);
+    
 };
 
 #endif /*SOCK_API_H_*/

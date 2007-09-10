@@ -23,6 +23,9 @@ void* sock2peer_worker(void*);
  */
 void* peer2sock_worker(void*);
 
+void* worker(void*);
+
+
 /**
  *  Set default options for UDT sockets
  */
@@ -47,21 +50,6 @@ void exit_handler(int);
 
 sockaddr_in   addr_any;
 
-// GLOBAL SETTINGS
-int  net_access = 0; // network access 0 - loopback; 1 - local subnets; 2+ - any.
-int  debug_level = 0;
-int  dump_message = 0;
-bool track_connections = false;
-bool rendezvous = false;
-bool demonize = false;
-
-// GLOBAL SETTINGS
-
-char * app_ident   = "udtrelay";
-char * sock_ident =  "sock2peer server";
-char * peer_ident  = "peer2sock server";
-char * serv_ident  = app_ident;
-
 int PID;
 char sPeer_addr[MAX_NAME_SZ+1] = "";
 char sPeer_listen_port[MAX_NAME_SZ+1] = "";
@@ -81,12 +69,6 @@ addrinfo *pPeerRzvRemote = NULL; // UDT server connects to it in rzv mode
 
 
 enum {DUAL,SERVER,CLIENT} mode  = DUAL;
-
-#ifdef UDP_BASEPORT_OPTION
-int baseport = 0;
-int maxport = 0;
-#endif
-
 
 int rcvbuffer = BLOCK_SIZE;
 
@@ -115,6 +97,7 @@ char* ccc = "";
 extern char *optarg;
 extern int   optind, opterr;
 
+
 Logger logger("udtrelay");
 
 int main(int argc, char* argv[], char* envp[])
@@ -127,7 +110,9 @@ int main(int argc, char* argv[], char* envp[])
     int       ltcpsock = 0;
 
     logger.setInteractive(true);
-
+    
+    globals::app_ident = "udtrelay";
+    
     char *usage = \
         "\nusage:\n"
         "\n"
@@ -167,7 +152,6 @@ int main(int argc, char* argv[], char* envp[])
 #ifdef UDP_BASEPORT_OPTION
         "    -P <from:to>     UDP port range to use for UDT data chanel.\n"
 #endif
-        "    -B <rcv>         (-)UDT rcv buffer size in megabytes (default: 1Mb)\n"
         "    -c <ccc>         Congetion control class:\n"
         "                       UDT (default), TCP, Vegas, ScalableTCP, HSTCP,\n"
         "                       BiCTCP, Westwood, FAST.\n"
@@ -186,21 +170,21 @@ int main(int argc, char* argv[], char* envp[])
             logger.log_info("%s", usage);
             exit(0);
         case 'N':
-            net_access++;
+            globals::net_access++;
             break;
         case 'd':
-            debug_level++;
+            globals::debug_level++;
             break;
         case 'X':
-            dump_message = atoi(optarg);
-            if (dump_message <= 0 or dump_message > 10000)
+            globals::dump_message = atoi(optarg);
+            if (globals::dump_message <= 0 or globals::dump_message > 10000)
                 logger.log_die("Wrong -X option value\n%s", usage);
             break;
         case 'D':
-            demonize = true;
+            globals::demonize = true;
             break;
         case 'L':
-            track_connections = true;
+            globals::track_connections = true;
             break;
         case 'C':
             if (mode != DUAL)
@@ -213,25 +197,20 @@ int main(int argc, char* argv[], char* envp[])
                 logger.log_die(" -S option can not be used with -C.\n");
             break;
         case 'R':
-            rendezvous = true;
+            globals::rendezvous = true;
             int c;
             if((c = sscanf(optarg,"%[^:]:%[^:]",sPeer_rzv_lport,sPeer_rzv_rport)) < 1)
                 logger.log_die("Wrong -R option syntax.\n");
             if (c = 1)
                 strcpy(sPeer_rzv_rport,sPeer_rzv_lport);
             break;
-        case 'B':
-            rcvbuffer = atoi(optarg);
-            if (rcvbuffer == 0)
-                logger.log_die("Wrong -B option value\n%s", usage);
-            rcvbuffer *= 1000000;
-            break;
 #ifdef UDP_BASEPORT_OPTION
         case 'P':
-            if(sscanf(optarg,"%d:%d",&baseport,&maxport) != 2)
+            if(sscanf(optarg,"%d:%d",&globals::baseport, &globals::maxport) != 2)
                 logger.log_die("Wrong -P option syntax.\n");
-            if (baseport < 1024 || baseport > 0xFFFE ||
-                maxport  < 1024 || maxport  > 0xFFFE || maxport <= baseport)
+            if (globals::baseport < 1024 || globals::baseport > 0xFFFE ||
+                    globals::maxport  < 1024 || globals::maxport  > 0xFFFE || 
+                    globals::maxport <= globals::baseport)
                 logger.log_die("Wrong -P option values: %s.\n", optarg);
             break;
 #endif
@@ -260,6 +239,8 @@ int main(int argc, char* argv[], char* envp[])
         }
     }
 
+    globals::app_ident = "?udtgate?";
+    globals::serv_ident  = "?udtgate?";
     
     addr_any.sin_family = AF_INET;
     addr_any.sin_port = 0;
@@ -270,14 +251,14 @@ int main(int argc, char* argv[], char* envp[])
 	exit(1);
     }
     
-    if(debug_level > 3)
-        debug_level = 3;
-    if(dump_message > 0)
-        debug_level = 3;
-    if(debug_level == 3 and dump_message == 0)
-        dump_message = 20;
+    if(globals::debug_level > 3)
+        globals::debug_level = 3;
+    if(globals::dump_message > 0)
+        globals::debug_level = 3;
+    if(globals::debug_level == 3 and globals::dump_message == 0)
+        globals::dump_message = 20;
         
-    logger.setDebugLevel(debug_level);
+    logger.setDebugLevel(globals::debug_level);
 
     if ((0 == argc-optind))
         logger.log_die("\nudtrelay (%s, build on \"%s\" with UDT v%s)\n\n%s\n\n", 
@@ -309,7 +290,7 @@ int main(int argc, char* argv[], char* envp[])
     logger.log_debug(1, "peer addr = %s peer_rport = %s peer_lport = %s\n",
               sPeer_addr, sPeer_remote_port, sPeer_listen_port);
     
-    if (demonize) { 
+    if (globals::demonize) { 
        switch (fork()) {
        case 0:  /* Child (left running on it's own) */
           break;
@@ -326,7 +307,7 @@ int main(int argc, char* argv[], char* envp[])
     }
 
     logger.log_info("");
-    logger.log_info("Starting %s (%s).\n", app_ident, PACKAGE_VERSION);
+    logger.log_info("Starting %s (%s).\n", globals::app_ident, PACKAGE_VERSION);
     
     do { // just block
     	int pid = 0;
@@ -336,19 +317,19 @@ int main(int argc, char* argv[], char* envp[])
     	
     	if (mode == DUAL or mode == SERVER) { // udt->tcp
     		server_pid = fork(); 
-			if (server_pid==-1) logger.log_die("% fork failed.\n", peer_ident);
+                if (server_pid==-1) logger.log_die("% fork failed.\n", globals::peer_ident);
 			if (!server_pid) {
 				mode = SERVER;
-				serv_ident = peer_ident;
+				globals::serv_ident = globals::peer_ident;
 				break;
 			}
     	}
     	if (mode == DUAL or mode == CLIENT) { // tcp->udt
     		client_pid = fork();
-			if (client_pid==-1) logger.log_die("% fork failed.\n", sock_ident);
+			if (client_pid==-1) logger.log_die("% fork failed.\n", globals::sock_ident);
 			if (!client_pid) {
 				mode = CLIENT;
-				serv_ident = sock_ident;
+				globals::serv_ident = globals::sock_ident;
 				break;
 			}
     	}
@@ -364,16 +345,16 @@ int main(int argc, char* argv[], char* envp[])
     	while (errno == EINTR);
     	
     	if (pid == server_pid)
-    		logger.log_notice("%s died. exiting.\n", peer_ident);
+    		logger.log_notice("%s died. exiting.\n", globals::peer_ident);
     	if (pid == client_pid)
-    		logger.log_notice("%s died. exiting.\n", sock_ident);
+    		logger.log_notice("%s died. exiting.\n", globals::sock_ident);
     	
     	exit_handler(SIGCHLD);
 
     } while (false);
     
 	utl::initsetproctitle(argc, argv, envp);
-	utl::setproctitle("%s: %s", app_ident, serv_ident);
+	utl::setproctitle("%s: %s", globals::app_ident, globals::serv_ident);
 
     memset(&hints, 0, sizeof(struct addrinfo));
 
@@ -396,7 +377,7 @@ int main(int argc, char* argv[], char* envp[])
         return 1;
     }
     
-    if (rendezvous) {
+    if (globals::rendezvous) {
         if (0 != getaddrinfo(NULL, sPeer_rzv_lport, &hints, &pPeerRzvLocal))
         {
             logger.log_die("Incorrect peer network address.\n");
@@ -411,7 +392,7 @@ int main(int argc, char* argv[], char* envp[])
 
     
     if (mode == SERVER) {
-        if(!rendezvous) {
+        if(!globals::rendezvous) {
             ludtsock = UDT::socket(pServaddr->ai_family, pServaddr->ai_socktype, pServaddr->ai_protocol);
             setsockopt(ludtsock);
             if (UDT::ERROR == UDT::bind(ludtsock, pServaddr->ai_addr, pServaddr->ai_addrlen))
@@ -425,7 +406,7 @@ int main(int argc, char* argv[], char* envp[])
                 logger.log_err("udt listen: %s\n", UDT::getlasterror().getErrorMessage());
                 return 0;
             }
-            logger.log_info("%s is ready at port: %s\n", peer_ident, sPeer_listen_port);
+            logger.log_info("%s is ready at port: %s\n", globals::peer_ident, sPeer_listen_port);
         }
     }
     else {
@@ -443,7 +424,7 @@ int main(int argc, char* argv[], char* envp[])
             logger.log_err("tcp listen error\n");
             return 0;
         }
-        logger.log_info("%s is ready at port: %s\n", sock_ident, sSocks_port);
+        logger.log_info("%s is ready at port: %s\n", globals::sock_ident, sSocks_port);
     }
     //cout << "server is ready at port: " << service << endl;
 
@@ -461,7 +442,7 @@ int main(int argc, char* argv[], char* envp[])
 
 
         if (mode == SERVER) {
-            if (!rendezvous) {
+            if (!globals::rendezvous) {
                 if (UDT::INVALID_SOCK == (audtsock = UDT::accept(ludtsock, (sockaddr*)&clientaddr, &addrlen)))
                 {
                     logger.log_err("accept: %s\n", UDT::getlasterror().getErrorMessage());
@@ -502,7 +483,7 @@ int main(int argc, char* argv[], char* envp[])
                     logger.log_notice("rejected peer connection: %s:%s\n", clienthost, clientservice);
                     continue;
             }
-            if (debug_level or track_connections)
+            if (globals::debug_level or globals::track_connections)
             	logger.log_notice("accepted peer connection: %s:%s\n", clienthost, clientservice);
 
             setsockopt(audtsock);
@@ -516,15 +497,15 @@ int main(int argc, char* argv[], char* envp[])
             }
             getnameinfo((sockaddr *)&clientaddr, addrlen, clienthost, sizeof(clienthost), clientservice, sizeof(clientservice), NI_NUMERICHOST|NI_NUMERICSERV);
             
-            if (net_access < 2) { // not -N -N options
-            	bool subnet = net_access > 0 ? true: false; // at least -N option - subnet mode
+            if (globals::net_access < 2) { // not -N -N options
+            	bool subnet = globals::net_access > 0 ? true: false; // at least -N option - subnet mode
             	if ( not utl::check_source((sockaddr *)&clientaddr, subnet)) {
             		close(atcpsock);
             		logger.log_notice("rejected socks connection: %s:%s\n", clienthost, clientservice);
             		continue;
             	}
             }
-            if (debug_level or track_connections)
+            if (globals::debug_level or globals::track_connections)
             	logger.log_notice("accepted socks connection: %s:%s\n", clienthost, clientservice);
             pthread_create(&childthread, NULL, start_child,  &atcpsock);
         }
@@ -608,8 +589,8 @@ void* start_child(void *servsock) {
 
             memcpy(&paddr.sin_addr, spkt.dstip, 4);
             
-            if (net_access < 2) { // not -N -N options
-                bool subnet = net_access > 0 ? true: false; // at least -N option - subnet mode
+            if (globals::net_access < 2) { // not -N -N options
+                bool subnet = globals::net_access > 0 ? true: false; // at least -N option - subnet mode
                 if ( not utl::check_source((sockaddr *)&paddr, subnet)) {
                     char buf[50];
                     spkt.cd = 92;
@@ -669,7 +650,7 @@ void* start_child(void *servsock) {
             sockaddr * bind_addr;
             size_t     addr_len;
 
-            if (rendezvous) {
+            if (globals::rendezvous) {
                 bind_addr = pPeerRzvLocal->ai_addr;
                 addr_len  = pPeerRzvLocal->ai_addrlen;
             }
@@ -715,10 +696,12 @@ void* start_child(void *servsock) {
 
             cargs.udtsock = peersock;
         }
-        pthread_create(&rcvthread, NULL, peer2sock_worker, &cargs);
-        pthread_create(&sndthread, NULL, sock2peer_worker, &cargs);
-        pthread_join(rcvthread, NULL);
-        pthread_join(sndthread, NULL);
+        
+        //pthread_create(&rcvthread, NULL, peer2sock_worker, &cargs);
+        //pthread_create(&sndthread, NULL, sock2peer_worker, &cargs);
+        //pthread_join(rcvthread, NULL);
+        //pthread_join(sndthread, NULL);
+        utl::worker(1,2);
         break;
     }
 
@@ -730,7 +713,7 @@ void* start_child(void *servsock) {
     close(cargs.tcpsock);
     //logger.log_debug("... closing tcp connection : ok");
     //logger.log_debug("");
-    if (debug_level or track_connections)
+    if (globals::debug_level or globals::track_connections)
     	logger.log_notice("close %s connection: %s:%s\n", conntype, clienthost, clientservice);
     return NULL;
 }
@@ -855,7 +838,7 @@ void setsockopt(UDTSOCKET sock) {
     ////
     // setup rendezvous mode if -R flag
     //
-    if(rendezvous)
+    if(globals::rendezvous)
         UDT::setsockopt(sock, 0, UDT_RENDEZVOUS, new bool(true), sizeof(bool));
 
     // set UDP port range to bind if the option UDP_BASEPORT exists (???)
@@ -898,6 +881,7 @@ void setsockopt(UDTSOCKET sock) {
         exit(-1);
     }
 }
+
 void* sock2peer_worker(void * ar )
 {
     cargs_t * pCargs = (cargs_t *) ar;
@@ -932,14 +916,14 @@ void* sock2peer_worker(void * ar )
             break;
         }
         //logger.log_debug(3, "tcp recv %d bytes\n", sz);
-        if (udt_send_all(pCargs->udtsock, data, sz) == UDT::ERROR) {
+        if (utl::udt_send_all(pCargs->udtsock, data, sz) == UDT::ERROR) {
             logger.log_err("udt send error: %s\n", UDT::getlasterror().getErrorMessage());
             break;
         }
 
-        char str[dump_message*5+10];
+        char str[globals::dump_message*5+10];
         logger.log_debug(3,"  tcp->udt %d bytes: [%s]\n", sz, 
-                utl::dump_str(str, data, rcvbuffer, sz, dump_message));
+                utl::dump_str(str, data, rcvbuffer, sz, globals::dump_message));
         //logger.log_debug(3, "udt send %d bytes\n", sz);
     }
 
@@ -985,14 +969,14 @@ void* peer2sock_worker(void* ar)
             pCargs->shutdown = 0;
             break;
         }
-        if (tcp_send_all (pCargs->tcpsock, data, sz) == -1 ) {
+        if (utl::tcp_send_all (pCargs->tcpsock, data, sz) == -1 ) {
             cerr << "send error" << endl;
             break;
         }
 
-        char str[dump_message*5+10];
+        char str[globals::dump_message*5+10];
         logger.log_debug(3,"  udt->tcp %d bytes: [%s]\n", sz, 
-                utl::dump_str(str, data, rcvbuffer, sz, dump_message));
+                utl::dump_str(str, data, rcvbuffer, sz, globals::dump_message));
     }
 
     delete [] data;
@@ -1024,28 +1008,6 @@ int parse_udt_option (char * optstr) {
     }
     logger.log_die("\nUnknown UDT option: %s\n", optname);
     exit(1);
-}
-int udt_send_all (UDTSOCKET sock, char * data, int size) {
-    int sz;
-    for (sz = 0; sz < size;) {
-        int c;
-        c = UDT::send(sock, data+sz, size-sz,0);
-        if (c < 0)
-            return c;
-        sz += c;
-    }
-    return sz;
-}
-int tcp_send_all (int sock, char * data, size_t size) {
-    size_t sz;
-    for (sz = 0; sz < size;) {
-        int c;
-        c = send(sock, data+sz, size-sz, 0);
-        if (c < 0)
-            return c;
-        sz += c;
-    }
-    return sz;
 }
 
 void exit_handler(int sig) {
