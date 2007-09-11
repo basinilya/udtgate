@@ -51,9 +51,9 @@ namespace utl {
     void sockaddr_mask(sockaddr* dst, sockaddr* src);
     bool check_source(sockaddr * addr, bool subnet);
     void memand (void * dst, void * src, size_t size);
-    int worker(int sd1, int sd2);
-    
-    int tcp_send_all (int sock, char * data, size_t size);
-    int udt_send_all (UDTSOCKET sock, char * data, int size);
+
+    int worker(int sd1, int sd2, timeval * timeout = NULL);
+    int worker(int fd_in, int fd_out, int sd, timeval * timeout = NULL);
+
 }
 #endif

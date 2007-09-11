@@ -7,6 +7,7 @@
 #include <udtgate.h>
 #include <utils.h>
 #include <stdlib.h>
+#include <logger.h>
 
 using namespace std;
 
@@ -16,11 +17,15 @@ char socksaddr[256] = "localhost";
 char socksport[256] = "1080";
 
 int sd;
+bool noproxy = false;
 
 addrinfo hints, *paddr, *psocksaddr;
  
 char usage[] = "usage:\n"
-        "        ugw_testconn addr:port [socksaddr:[socksport]]\n";
+        "        ugw_testconn addr:port [socksaddr:[socksport]]\n"
+        "        ugw_testconn addr:port direct\n";
+
+Logger logger("testconn");
 
 int main(int argc, char* argv[], char* envp[])
 {
@@ -43,7 +48,10 @@ int main(int argc, char* argv[], char* envp[])
     }
     
     if (argc > 2)
-        if (sscanf(argv[2],"%[^:]:%[^:]",&socksaddr, &socksport) < 1) {
+        if (0 == strcasecmp(argv[2], "noproxy")) {
+            noproxy = true;
+        }
+        else if (sscanf(argv[2],"%[^:]:%[^:]",&socksaddr, &socksport) < 1) {
             cerr << "wrong arguments\n\n" << usage << endl;
             exit(1);
         }
@@ -57,28 +65,38 @@ int main(int argc, char* argv[], char* envp[])
         exit(1);
     }
     
-    if (connect(sd, psocksaddr->ai_addr, psocksaddr->ai_addrlen) != 0) {
-        perror("connect: ");
-        exit(1);
+    logger.setDebugLevel(3);
+    
+    if (noproxy) {
+        if (connect(sd, paddr->ai_addr, paddr->ai_addrlen) != 0) {
+            perror("connect: ");
+            exit(1);
+        }
     }
-    
-    sock_pkt req;
-    
-    req.vn = 4;
-    req.cd = 1;
-    memcpy(&req.dstport,&((sockaddr_in*) paddr->ai_addr)->sin_port, 
-            sizeof(req.dstport));
-    memcpy(&req.dstip,&((sockaddr_in*) paddr->ai_addr)->sin_addr, 
-            sizeof(req.dstip));
+    else {
+        if (connect(sd, psocksaddr->ai_addr, psocksaddr->ai_addrlen) != 0) {
+            perror("connect: ");
+            exit(1);
+        }
+        
+        sock_pkt req;
+        
+        req.vn = 4;
+        req.cd = 1;
+        memcpy(&req.dstport,&((sockaddr_in*) paddr->ai_addr)->sin_port, 
+                sizeof(req.dstport));
+        memcpy(&req.dstip,&((sockaddr_in*) paddr->ai_addr)->sin_addr, 
+                sizeof(req.dstip));
 
-    send(sd, &req, sizeof(req),0);
-    char null = '\0';
-    send(sd, &null, 1,0);
-    
-    //fflush(sd);
-    recv(sd, &req, sizeof(req),0);
-    sleep(10);
-    
+        send(sd, &req, sizeof(req),0);
+        char null = '\0';
+        send(sd, &null, 1,0);
+        
+        //fflush(sd);
+        recv(sd, &req, sizeof(req),0);
+    }
 
     cout << "success!!!\n";
+    
+    utl::worker (fileno(stdin),fileno(stdout),sd);
 }

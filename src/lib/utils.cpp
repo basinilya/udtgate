@@ -189,32 +189,4 @@ namespace utl {
         for(dst1 = (char*) dst, src1 = (char*) src; size>0; size--, dst1++, src1++)
             *dst1 &= *src1;
     }
-    int udt_send_all (UDTSOCKET sock, char * data, int size) {
-        int sz;
-        for (sz = 0; sz < size;) {
-            int c;
-            c = UDT::send(sock, data+sz, size-sz,0);
-            if (c < 0) {
-                if (errno == EINTR)
-                    continue;
-                return c;
-            }
-            sz += c;
-        }
-        return sz;
-    }
-    int tcp_send_all (int sock, char * data, size_t size) {
-        size_t sz;
-        for (sz = 0; sz < size;) {
-            int c;
-            c = send(sock, data+sz, size-sz, 0);
-            if (c < 0) {
-                if (errno == EINTR)
-                    continue;
-                return c;
-            }
-            sz += c;
-        }
-        return sz;
-    }
 }

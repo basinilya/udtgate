@@ -38,10 +38,10 @@ namespace SOCK_API
 
     int recv    (UDTSOCKET sd, void *buff, size_t n, int flags);
     
-    int read     (UDTSOCKET sd, void *buff, size_t n);
+    int read     (UDTSOCKET sd, void *buff, size_t n, int timeout=0);
     int readn    (UDTSOCKET sd, void *buff, size_t n, int timeout=0);
 
-    int write    (UDTSOCKET sd, void *buff, size_t n);
+    int write    (UDTSOCKET sd, void *buff, size_t n, int timeout=0);
     int writen   (UDTSOCKET sd, void *buff, size_t n, int timeout=0);
 
 
@@ -59,8 +59,8 @@ namespace SOCK_API
     int setsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t optlen);
     int getsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t* optlenp);
     
-    int maxfdn(...);
-    
+    int maxfdn(UDTSOCKET sd1, UDTSOCKET sd2);
+    int maxfdn(std::set<UDTSOCKET> sd_set);
 };
 
 #endif /*SOCK_API_H_*/
