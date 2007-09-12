@@ -127,13 +127,13 @@ int main(int argc, char* argv[], char* envp[])
         "\n"
         "  OPTIONS: \n"
         "    -h               How this help and exit.\n"
-        "    -d               Encrease debug level.\n"
+        "    -d               Encrease debug level, superset of -L.\n"
         "    -X <len>         dump fisrt <len> bytes as ASCII from each message.\n"
         "                     this option also sets maximal debug level.\n"
         "                     if debug level was set to 3 than default value of\n"
         "                     this option is 20\n"
         "    -D               Demonize.\n"
-        "    -L               Log connections (by default - in the debug mode)\n"
+        "    -L               Log connections\n"
         "    -N               Allow socks connections from attached subnets \n"
         "                     (by default only internal connections are permited);\n"
         "                     appling this option twice - allows all incoming\n"
@@ -239,8 +239,12 @@ int main(int argc, char* argv[], char* envp[])
         }
     }
 
-    globals::app_ident = "?udtgate?";
-    globals::serv_ident  = "?udtgate?";
+    globals::app_ident   = "udtrelay";
+    globals::sock_ident =  "socks server";
+    globals::peer_ident  = "peers server";
+    globals::serv_ident  = globals::app_ident;
+
+    
     
     addr_any.sin_family = AF_INET;
     addr_any.sin_port = 0;
@@ -251,13 +255,14 @@ int main(int argc, char* argv[], char* envp[])
 	exit(1);
     }
     
+
     if(globals::debug_level > 3)
         globals::debug_level = 3;
     if(globals::dump_message > 0)
         globals::debug_level = 3;
     if(globals::debug_level == 3 and globals::dump_message == 0)
         globals::dump_message = 20;
-        
+
     logger.setDebugLevel(globals::debug_level);
 
     if ((0 == argc-optind))

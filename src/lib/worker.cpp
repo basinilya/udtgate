@@ -1,10 +1,11 @@
+#include <time.h>
 #include <utils.h>
 #include <logger.h>
 #include <socket_api.h>
 
 extern Logger logger;
 
-int utl::worker (int fd_in, int fd_out, int sd, timeval * to) {
+int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
 
     int   bfsize = 16*1024;
     char * data = new char[bfsize];
@@ -15,16 +16,20 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * to) {
 
     logger.log_debug(2, "start worker\n");
 
-    bool fd_in_to_sd  = true;
-    bool sd_to_fd_out = true;
-
     char str[globals::dump_message*5+10];
 
     int maxfdn = SOCK_API::maxfdn(fd_out, sd);
 
-    bool runing = false;
+    bool runing    = false;
+    bool fwd_shut     = false;
+    bool rev_shut     = false;
+    time_t start;
+    time_t stamp;
+    
+    start = stamp = time(0);
 
-    while (fd_in_to_sd or sd_to_fd_out) {
+    while (!fwd_shut and !rev_shut
+            and (timeout == NULL or time(0) - stamp < timeout->tv_sec)) {
 
         timeval th, *to;
         th.tv_sec = 3;
@@ -53,60 +58,83 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * to) {
         runing = false;
 
         // fd_in -> sd
-        if (fd_in_to_sd and
-            rset.ISSET(fd_in) and
-            wset.ISSET(sd)) {
+        if (rset.ISSET(fd_in) and wset.ISSET(sd) and !fwd_shut) {
 
             int sz1  = 0;
-            int sz2  = 0;
-
             runing = true;
 
             sz1 = SOCK_API::read(fd_in, data, bfsize);
-            if (sz1 > 0) {
-                sz2 = SOCK_API::writen(sd, data, sz1);
-            }
-            if (sz2 > 0) {
-                logger.log_debug(3,"  sd1 -> sd2 %d/%d bytes: [%s]\n", sz1, sz2,
-                                 utl::dump_str(str, data, bfsize, sz2, globals::dump_message));
-            }
-            if (sz2 <= 0) {
-                if (sz2 < 0)
-                    logger.log_debug(3,"  sd1 -> sd2 (close/error)\n");
-                else
-                    logger.log_debug(3,"  sd1 -> sd2 (close/normal)\n");
-                fd_in_to_sd = false;
+            
+            while (1) {
+                if (sz1 > 0) {
+                    int sz2 = SOCK_API::writen(sd, data, sz1);
+                    if (sz2 == sz1) {
+                        logger.log_debug(3,"  sd1 -> sd2 %d/%d bytes: [%s]\n", sz1, sz2,
+                                         utl::dump_str(str, data, bfsize, sz2, globals::dump_message));
+                        stamp = time(0);
+                        break;
+                    }
+                    else {
+                        logger.log_debug(3,"  sd1 -> sd2 close(write error)\n");
+                        fwd_shut= true;
+                    }
+                }
+                else if (sz1 == 0) {
+                    logger.log_debug(3,"  sd1 -> sd2 EOF\n");
+                    fwd_shut= true;
+                    // nothing
+                }
+                else {
+                    logger.log_debug(3,"  sd1 -> sd2 close(read error)\n");
+                    fwd_shut = true;
+                }
+                SOCK_API::shutdown(fd_in, SHUT_RD);
+                SOCK_API::shutdown(sd, SHUT_WR);
+                break;
             }
         }
 
         // sd -> fd_out
-        if (sd_to_fd_out and
-            rset.ISSET(sd) and
-            wset.ISSET(fd_out)) {
+        if (rset.ISSET(sd) and wset.ISSET(fd_out) and !rev_shut) {
 
             int sz1 = 0;
-            int sz2 = 0;
-
             runing = true;
 
             sz1 = SOCK_API::read(sd, data, bfsize);
-            logger.log_debug(3," worker sd2 read %d bytes from %d\n", sz1,sd);
-
-            if (sz1 > 0) {
-                sz2 = SOCK_API::write(fd_out, data, sz1);
-            }
-            if (sz2 > 0)
-                logger.log_debug(3,"  sd2 -> sd1 %d/%d bytes: [%s]\n", sz1, sz2,
-                                 utl::dump_str(str, data, bfsize, sz2, globals::dump_message));
-            if (sz2 <= 0) {
-                if (sz2 < 0)
-                    logger.log_debug(3,"  sd2 -> sd1 (close/error)\n");
-                else
-                    logger.log_debug(3,"  sd2 -> sd1 (close/normal)\n");
-                sd_to_fd_out = false;
+            //logger.log_debug(3," worker sd2 read %d bytes from %d\n", sz1,sd);
+            while(1) {
+                if (sz1 > 0) {
+                    int sz2 = SOCK_API::writen(fd_out, data, sz1);
+                    if (sz2 == sz1) {
+                        logger.log_debug(3,"  sd2 -> sd1 %d/%d bytes: [%s]\n", sz1, sz2,
+                                         utl::dump_str(str, data, bfsize, sz2, globals::dump_message));
+                        stamp = time(0);
+                        break;
+                    }
+                    else {
+                        logger.log_debug(3,"  sd2 -> sd1 close (write error)\n");
+                        rev_shut = true;
+                    }
+                }
+                else if (sz1 == 0) {
+                    logger.log_debug(3,"  sd1 -> sd2 EOF\n");
+                    rev_shut= true;
+                    // nothing
+                }
+                else {
+                    logger.log_debug(3,"  sd2 -> sd1 close(read error)\n");
+                    rev_shut = true;
+                }
+                SOCK_API::shutdown(sd, SHUT_RD);
+                SOCK_API::shutdown(fd_out, SHUT_WR);
+                break;
             }
         }
     }
+    SOCK_API::close(fd_in);
+    if (fd_in != fd_out)
+        SOCK_API::close(fd_out);
+    SOCK_API::close(sd);
 
     delete [] data;
 

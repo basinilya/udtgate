@@ -3,6 +3,7 @@
 
 #ifdef  DEFAULT_INCLUDES
 #  ifndef Win32
+#    include <errno.h>
 #    include <config.h>
 #    include <unistd.h>
 #    include <sys/socket.h>
@@ -61,22 +62,6 @@ public:
     static char * app_ident;
     static char * serv_ident;
 
-    static void init_globals () {
-        net_access = 0;
-        debug_level = 0;
-        dump_message = 16;
-        track_connections = false;
-        rendezvous = false;
-        demonize = false;
-#ifdef UDP_BASEPORT_OPTION
-        baseport = 0;
-        maxport = 0;
-#endif
-        app_ident   = "udtrelay";
-        sock_ident =  "sock2peer server";
-        peer_ident  = "peer2sock server";
-        serv_ident  = app_ident;
-    }
 };
 
 #pragma pack(1)

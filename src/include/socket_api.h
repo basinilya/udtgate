@@ -1,6 +1,7 @@
 #ifndef SOCK_API_H_
 #define SOCK_API_H_
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <udt/udt.h>
@@ -53,8 +54,8 @@ namespace SOCK_API
 
     int select  (int nfds, FDSET* rfds, FDSET* wfds, FDSET* efds, const struct timeval* timeout);
 
-    int close();
-    int shutdown(int how);
+    int close(UDTSOCKET sd);
+    int shutdown(UDTSOCKET sd,int how);
 
     int setsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t optlen);
     int getsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t* optlenp);

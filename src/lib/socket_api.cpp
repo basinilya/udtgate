@@ -185,13 +185,13 @@ namespace SOCK_API {
     }
     int close(UDTSOCKET sd){
         if (sd < UDT_FD_BASE)
-            close(sd);
+            ::close(sd);
         else
             ::UDT::close(sd-UDT_FD_BASE);
     }
     int shutdown(UDTSOCKET sd, int how){
         if (sd < UDT_FD_BASE)
-            shutdown(static_cast<int>(sd), how);
+            ::shutdown(static_cast<int>(sd), how);
         else
             ::UDT::close(sd-UDT_FD_BASE);
     }

@@ -57,7 +57,7 @@ while (1) {
     chomp $newdate;
 
     unless ($newdate =~ /^\s*$/) {
-	   unless ($newdate =~ /^\s*$/) {
+	   unless ($newdate =~ /^\d\d\d\d-\d\d-\d\d$/) {
 	       print "data syntax error, expected dddd-dd-dd, try again\n";
 	       next;
 	   }
