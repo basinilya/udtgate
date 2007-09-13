@@ -221,7 +221,7 @@ namespace SOCK_API {
     }
     int select(int nfds, FDSET* rfdsp, FDSET* wfdsp, FDSET* efdsp, const struct timeval* timeout) {
 
-        int scale_factor = 1;
+        int scale_factor = 0;
         int scale_mask = 3;
         
         FDSET zset, rfds, wfds, efds;
@@ -247,8 +247,6 @@ namespace SOCK_API {
         
         int t_cur = t_min;
 
-        utl::utime2timeval(&t,t_cur);
-        //logger.log_debug(3, " SOCK_API::select timeout =  %d / %d \n", t.tv_sec, t.tv_usec);
 
         while (true) {
 
@@ -256,7 +254,7 @@ namespace SOCK_API {
             wfds = *wfdsp; 
             efds = *efdsp; 
             
-            utl::utime2timeval(&t,t_cur);
+            utl::utime2timeval(&t,t_cur*scale_factor);
 
             //logger.log_debug(3, " SOCK_API::select c_curr =  %d time_rest=%d\n", t_cur, time_rest);
             

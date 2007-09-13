@@ -612,6 +612,13 @@ void* start_child(void *servsock) {
                 logger.log_warning("canot connect\n");
                 break;
             }
+            
+            int rcvbuf = 1024*1024;
+            
+            if(setsockopt(peersock, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(int)))
+                logger.log_die("setsockopt\n");
+            if(setsockopt(peersock, SOL_SOCKET, SO_SNDBUF, &rcvbuf, sizeof(int)))
+                logger.log_die("setsockopt\n");
 
             logger.log_debug(2, "connected\n");
 

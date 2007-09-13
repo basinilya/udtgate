@@ -7,42 +7,43 @@ my $newver;
 my $rewrite = 0;
 
 open(IN, "configure.ac");
-($ver) = grep {$_=~/^AC_INIT\(.*\[(\d+\.\d+)\]/ and $_= $1} (<IN>);
+($ver) = grep {$_=~/^AC_INIT\(.*\[(\d+\.\d+(-\w+)?)\]/ and $_= $1} (<IN>);
 
-my ($maj,$min) = split /\./, $ver; 
+
+my ($maj,$min,$tag) = split /\./, $ver; 
 my ($newmaj,$newmin); 
 
 while (1) {
     print "Old release $ver, enter new relase ($maj.".($min+1)."): ";
     $newver = <>;
+    
     chomp $newver;
+    $newver =~ s/^\s*//;
+    $newver =~ s/\s*$//;
+    
+    
     if ($newver =~ /^\s*$/) {
     	$newmaj = $maj;
     	$newmin = $min+1;
+    	$newver = "$newmaj.$newmin";
     	last;
     }
-    elsif ($newver =~ /^(\d+)\.(\d+)$/) {
+    elsif ($newver =~ /^(\d+)\.(\d+)(-\w+)?$/) {
     	$newmaj = $1; $newmin = $2;
-        if ($newmaj == $maj and $newmin == $min) {
-            print "You are about to rewite release old($ver) = new($newmaj.$newmin)\n";
-            print "Are you sure (N/y)?: ";
-            my $a = <>;
-            next unless $a =~ /^y/i;
-            $rewrite = 1;
-            last;
+        if ("$newver" eq "$ver") {
+            print "Error, new version ($newver) can not be same as old version ($ver)\n";
+            next;
         }
-    	elsif ($newmaj < $maj or ($newmaj == $maj and $newmin <= $min)) {
-            print "Error, new version ($newmaj.$newmin) <= old version ($maj,$min)\n";
+    	elsif ($newmaj < $maj or ($newmaj == $maj and $newmin < $min)) {
+            print "Error, new version ($newmaj.$newmin) < old version ($maj,$min)\n";
     		next;
     	}
     	else {
     		last;
     	}
     }
-    print "Release syntax error, expected \"d.d\", try egain\n";
+    print "Release syntax error, expected \"d.d[-s]\", try egain\n";
 }
-
-$newver = "$newmaj.$newmin";
 
 print "$ver -> $newver\n";
 
@@ -71,29 +72,47 @@ while (1) {
 
 print "Date = $date\n";
 
+my $updatecvs;
+while (1) {
+    print "Update cvs (y/n)? ";
+    my $a = <>;
+    if ($a  =~ /y/i) {
+        $updatecvs = 1;
+        last;
+    }
+    elsif ($a  =~ /n/i) {
+        $updatecvs = 0;
+        last;
+    }
+}
+
 my ($V) = $ver;
 
 $V =~ s/\./\\./g;
-
-unless ($rewrite) {
+if ($updatecvs) {
     _system("cvs commit -m. configure.ac");
-    _system("sed '/^AC_INIT/ s/\\[$V\\]/[$newver]/' < configure.ac > configure.ac.new");
-    _system("sed '2 {s/[0-9]\\.[0-9]/$newver/\n\t s/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/$date/}' < README > README.new");
-    _system("mv configure.ac.new configure.ac");
-    _system("mv README.new README");
-    _system("cp NEWS NEWS.sav");
-    _system("echo '$date Version $newver\n\t*\n\n'> NEWS");
-    _system("cat NEWS.sav >> NEWS");
 }
+_system("sed '/^AC_INIT/ s/\\[$V\\]/[$newver]/' < configure.ac > configure.ac.new");
+_system("sed '2 {s/Ver .*/Ver $newver ($date)/}' < README > README.new");
+_system("mv configure.ac.new configure.ac");
+_system("mv README.new README");
+_system("cp NEWS NEWS.sav");
+_system("echo '$date Version $newver\n\t*\n\n'> NEWS");
+_system("cat NEWS.sav >> NEWS");
+
 _system("vi NEWS");
 
 _system("autoconf");
 _system("automake");
 
-my $REWRITED = $rewrite ? "(rewrited)":"";
-_system("cvs commit -m 'Release $newver$REWRITED'");
-_system("cvs tag -d rel-$newmaj-$newmin");
-_system("cvs tag -c rel-$newmaj-$newmin");
+my $tag = $newver;
+$tag =~ s/\./-/g;
+print $tag;
+if ($updatecvs) {
+    _system("cvs commit -m 'Release $newver'");
+    _system("cvs tag -d rel-$tag");
+    _system("cvs tag -c rel-$tag");
+}
 
 _system("make dist");
 

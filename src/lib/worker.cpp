@@ -7,7 +7,7 @@ extern Logger logger;
 
 int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
 
-    int   bfsize = 16*1024;
+    int   bfsize = 256*1024;
     char * data = new char[bfsize];
 
     SOCK_API::FDSET rset;
@@ -52,15 +52,15 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
         if (active) {
             to.tv_sec = 0;
             to.tv_usec = 0;
-            logger.log_debug(3," rd select (active)... \n");
+            //logger.log_debug(3," rd select (active)... \n");
             SOCK_API::select(maxfdn, &rset, NULL, &eset, NULL);
-            logger.log_debug(3," ... rd select (active)\n");
+            //logger.log_debug(3," ... rd select (active)\n");
         }
         else {
             to = th;
-            logger.log_debug(3," rd select (pass)... \n");
+            //logger.log_debug(3," rd select (pass)... \n");
             SOCK_API::select(maxfdn, &rset, NULL, &eset, &to);
-            logger.log_debug(3," ... rd select (pass)\n");
+            //logger.log_debug(3," ... rd select (pass)\n");
         }
         
         active = false;
@@ -85,16 +85,16 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
             int sz1  = 0;
             active = true;
 
-            logger.log_debug(3," read ... \n");
+            //logger.log_debug(3," read ... \n");
             sz1 = SOCK_API::read(fd_in, data, bfsize);
-            logger.log_debug(3," ... read \n");
+            //logger.log_debug(3," ... read \n");
 
             
             while (1) {
                 if (sz1 > 0) {
-                    logger.log_debug(3," writen ... \n");
+                    //logger.log_debug(3," writen ... \n");
                     int sz2 = SOCK_API::writen(sd, data, sz1);
-                    logger.log_debug(3," ... writen\n");
+                    //logger.log_debug(3," ... writen\n");
                     if (sz2 == sz1) {
                         logger.log_debug(3,"  sd1 -> sd2 %d/%d bytes: [%s]\n", sz1, sz2,
                                          utl::dump_str(str, data, bfsize, sz2, globals::dump_message));

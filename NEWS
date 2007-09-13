@@ -1,3 +1,6 @@
+2007-09-13 Version 1.3-fix1
+    * fixed: bug in SOCK_API:select()
+
 2007-09-12 Version 1.3 (udtrelay/beta)
     * done:  generic SOCK_API near to ready
     * done:  partial move to generic socket api SOCK_API

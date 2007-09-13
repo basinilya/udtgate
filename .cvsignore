@@ -7,3 +7,5 @@ configure.scan
 configure.log
 config.log
 NEWS.sav
+core.*
+gmon.out
