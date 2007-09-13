@@ -92,14 +92,14 @@ $V =~ s/\./\\./g;
 if ($updatecvs) {
     _system("cvs commit -m. configure.ac");
 }
+
 _system("sed '/^AC_INIT/ s/\\[$V\\]/[$newver]/' < configure.ac > configure.ac.new");
 _system("sed '2 {s/Ver .*/Ver $newver ($date)/}' < README > README.new");
 _system("mv configure.ac.new configure.ac");
 _system("mv README.new README");
 _system("cp NEWS NEWS.sav");
-_system("echo '$date Version $newver\n\t*\n\n'> NEWS");
+_system("echo '$date Version $newver\n\    *\n\n'> NEWS");
 _system("cat NEWS.sav >> NEWS");
-
 _system("vi NEWS");
 
 _system("autoconf");
