@@ -54,6 +54,14 @@ namespace utl {
 
     int worker(int sd1, int sd2, timeval * timeout = NULL);
     int worker(int fd_in, int fd_out, int sd, timeval * timeout = NULL);
-
+    
+    inline int timeval2utime(const timeval * t) {
+        return t->tv_sec*1000000+t->tv_usec;
+    }
+    inline timeval * utime2timeval(timeval * t1, time_t t2) {
+        t1->tv_sec = t2 / 1000000;
+        t1->tv_usec = t2 % 1000000;
+        return t1; 
+    }
 }
 #endif

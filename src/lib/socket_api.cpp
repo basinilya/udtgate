@@ -4,12 +4,16 @@
 #include <set>
 #include <assert.h>
 #include <logger.h>
+#include <utils.h>
 
 
 extern int errno;
 extern Logger logger;
 
-SOCK_API::FDSET::FDSET() {}
+SOCK_API::FDSET::FDSET() {
+    udset.clear();
+    FD_ZERO(&fdset);
+}
 SOCK_API::FDSET::~FDSET() {}
 
 void SOCK_API::FDSET::ZERO() {
@@ -215,51 +219,83 @@ namespace SOCK_API {
             }
         }
     }
-    int select(int nfds, FDSET* rdfds, FDSET* wfds, FDSET* efds, const struct timeval* timeout) {
+    int select(int nfds, FDSET* rfdsp, FDSET* wfdsp, FDSET* efdsp, const struct timeval* timeout) {
 
-        int t_min = 100; // start value for internal timeout (us)
+        int scale_factor = 1;
+        int scale_mask = 3;
+        
+        FDSET zset, rfds, wfds, efds;
+        
+        if (! rfdsp)
+            rfdsp = &zset;
+        if (! wfdsp)
+            wfdsp = &zset;
+        if (! efdsp)
+            efdsp = &zset;
+        
+        time_t t_min = 100; // start value for internal timeout (us)
+        time_t u_timeout = timeout == NULL ? 0 : utl::timeval2utime(timeout);
+        time_t time_rest = u_timeout;
 
         timeval t;
         
         if (timeout != NULL) {
-            if (timeout->tv_sec == 0 and timeout->tv_usec < t_min * 2) {
-                t_min = timeout->tv_usec / 2;
+            if (u_timeout < t_min * 2 * scale_mask) {
+                t_min =  u_timeout / 2 / scale_mask + 1;
             }
         }
-
-        int t_max = t_min*8; // maximal vaue for internal timeout (us)
-
         
         int t_cur = t_min;
-        int64_t time_rest = t_cur;
 
+        utl::utime2timeval(&t,t_cur);
+        //logger.log_debug(3, " SOCK_API::select timeout =  %d / %d \n", t.tv_sec, t.tv_usec);
 
         while (true) {
+
+            rfds = *rfdsp; 
+            wfds = *wfdsp; 
+            efds = *efdsp; 
             
-            t.tv_sec = t_cur / 1000000;
-            t.tv_usec = t_cur % 1000000;
+            utl::utime2timeval(&t,t_cur);
+
+            //logger.log_debug(3, " SOCK_API::select c_curr =  %d time_rest=%d\n", t_cur, time_rest);
+            
+            //logger.log_debug(3," ::select ... \n");
+            int res1 = ::select(nfds, &rfds.fdset, &wfds.fdset, &efds.fdset, &t);
+            //logger.log_debug(3, " ::select = %d\n",res1);
+
+            //logger.log_debug(3," UDT::select ... \n");
+            
+            int res2 = ::UDT::select(nfds, &rfds.udset, &wfds.udset, &efds.udset, &t);
             
             
-            //logger.log_debug(3, " ::select (%d / %d) ...\n", nfds, t_cur);
-            int res1 = ::select(nfds, &rdfds->fdset, &wfds->fdset, &efds->fdset, &t);
-            //logger.log_debug(3, " ... ::select = %d\n",res1);
-            //logger.log_debug(3, " UDT::Select ...\n");
-            int res2 = ::UDT::select(nfds, &rdfds->udset, &wfds->udset, &efds->udset, &t);
-            //logger.log_debug(3, " ... UDT::select = %d\n");
+            if (res2 == ::UDT::ERROR) 
+                logger.log_debug(3," %s\n!!!!!!", ::UDT::getlasterror().getErrorMessage());
+                
+            //logger.log_debug(3," .. UDT::select  == %d\n", res2);
 
             time_rest -= t_cur*2 + 1;
 
-            if (res1==0 and res2==0) { // pure internal timeout
-                if (time_rest <= 0) // global timeout reached
-                    return 0;
-                t_cur = ::std::max<int>(t_cur*2, t_max); // increase internal timeout twice but not more t_max
-            }
-            else if (res1 <= 0 and res2 <= 0) { // error + possible timeout
-                return -1;
-            }
-            else { // data somewehe, return the number of ready descriptors
+            if (res1 > 0 or res2 > 0) { // some data and return;
+                * rfdsp = rfds;
+                * wfdsp = wfds;
+                * efdsp = efds;
                 return (res1 > 0 ? res1 : 0) + (res2 > 0 ? res2 : 0);
             }
+            else if (res1 < 0 or res2 < 0 or time_rest < 0) { // no data and return
+                * rfdsp = * wfdsp = * efdsp = zset;
+                if (res1==0 and res2==0)
+                    return 0; // time_rest < 0 -- pure timeout
+                else
+                    return -1; // some error
+            }
+            
+            // no data and continue
+            scale_factor = scale_mask & ((scale_factor << 1) + 1);
+                
+            t_cur = t_min * scale_factor;
+            timeval d;
+
         }
     }
     

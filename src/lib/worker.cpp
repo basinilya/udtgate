@@ -20,7 +20,7 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
 
     int maxfdn = SOCK_API::maxfdn(fd_out, sd);
 
-    bool runing    = false;
+    bool active       = true;
     bool fwd_shut     = false;
     bool rev_shut     = false;
     time_t start;
@@ -31,9 +31,9 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
     while (!fwd_shut and !rev_shut
             and (timeout == NULL or time(0) - stamp < timeout->tv_sec)) {
 
-        timeval th, *to;
-        th.tv_sec = 3;
-        th.tv_usec = 0;
+        timeval th, to;
+        th.tv_sec = 0;
+        th.tv_usec = 1000;
 
         rset.ZERO();
         wset.ZERO();
@@ -42,32 +42,59 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
         rset.SET(fd_in);
         rset.SET(sd);
 
-        wset.SET(fd_out);
-        wset.SET(sd);
-
         eset.SET(fd_in);
         eset.SET(fd_out);
         eset.SET(sd);
 
-        to = runing ? NULL : &th;
 
         //logger.log_debug(3,"  Select ...\n");
-        SOCK_API::select(maxfdn, &rset, &wset, &eset, to);
-        //logger.log_debug(3,"  ... select\n");
+        
+        if (active) {
+            to.tv_sec = 0;
+            to.tv_usec = 0;
+            logger.log_debug(3," rd select (active)... \n");
+            SOCK_API::select(maxfdn, &rset, NULL, &eset, NULL);
+            logger.log_debug(3," ... rd select (active)\n");
+        }
+        else {
+            to = th;
+            logger.log_debug(3," rd select (pass)... \n");
+            SOCK_API::select(maxfdn, &rset, NULL, &eset, &to);
+            logger.log_debug(3," ... rd select (pass)\n");
+        }
+        
+        active = false;
+        
+        if (rset.ISSET(fd_in)) {
+            wset.SET(sd);
+        }
+        if (rset.ISSET(sd)) {
+            wset.SET(fd_out);
+        }
+        
+        to.tv_sec = 0;
+        to.tv_usec = 0;
+        //logger.log_debug(3," wr select ... \n");
+        SOCK_API::select(maxfdn, NULL, &wset, &eset, &to);
+        //logger.log_debug(3," ... wr select \n");
 
-        runing = false;
 
         // fd_in -> sd
         if (rset.ISSET(fd_in) and wset.ISSET(sd) and !fwd_shut) {
 
             int sz1  = 0;
-            runing = true;
+            active = true;
 
+            logger.log_debug(3," read ... \n");
             sz1 = SOCK_API::read(fd_in, data, bfsize);
+            logger.log_debug(3," ... read \n");
+
             
             while (1) {
                 if (sz1 > 0) {
+                    logger.log_debug(3," writen ... \n");
                     int sz2 = SOCK_API::writen(sd, data, sz1);
+                    logger.log_debug(3," ... writen\n");
                     if (sz2 == sz1) {
                         logger.log_debug(3,"  sd1 -> sd2 %d/%d bytes: [%s]\n", sz1, sz2,
                                          utl::dump_str(str, data, bfsize, sz2, globals::dump_message));
@@ -98,7 +125,7 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
         if (rset.ISSET(sd) and wset.ISSET(fd_out) and !rev_shut) {
 
             int sz1 = 0;
-            runing = true;
+            active = true;
 
             sz1 = SOCK_API::read(sd, data, bfsize);
             //logger.log_debug(3," worker sd2 read %d bytes from %d\n", sz1,sd);
