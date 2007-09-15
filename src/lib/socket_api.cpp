@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <logger.h>
 #include <utils.h>
+#include <fcntl.h>
 
 
 extern int errno;
@@ -41,7 +42,7 @@ bool SOCK_API::FDSET::ISSET(UDTSOCKET sd) {
 
 namespace SOCK_API {
 
-
+    
     UDTSOCKET socket(int domain, int type, _proto_t proto) {
         if (proto == TCP)
             return ::socket (domain, type, 0);
@@ -147,7 +148,7 @@ namespace SOCK_API {
         nleft = n;
         
         while(nleft > 0) {
-            if ( (n = write(sd,ptr,nleft, timeout)) <= 0) {
+            if ( (nwritten = write(sd,ptr,nleft, timeout)) <= 0) {
                 if(errno == EINTR)
                     nwritten = 0;
                 else
@@ -199,18 +200,134 @@ namespace SOCK_API {
         else
             ::UDT::close(sd-UDT_FD_BASE);
     }
-    int setsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t optlen) {
-        if (sd < UDT_FD_BASE)
-            return setsockopt(sd, level, optname, optval, optlen);
+    int setsockopt(UDTSOCKET sd, int level, ::UDT::SOCKOPT optname, void* optval, socklen_t optlen) {
+        if (sd < UDT_FD_BASE) {
+            int val;
+            int olevel = SOL_SOCKET;
+            int oname;
+            int olen = sizeof(int);
+            
+            switch (optname) {
+            /***
+             *  fcntl sets O_NONBLOCK for read and write
+             *  simaltaniozly, thus, it is not good for us.
+             * 
+             */
+            case UDT_SNDSYN :
+                val = fcntl(sd, F_GETFL, 0);
+                if (val  == -1) return -1;
+                if (*((bool*)optval) == true) {
+                    if (fcntl(sd, F_SETFL, val & ~O_NONBLOCK) == -1)
+                        return -1;
+                }
+                else {
+                    if (fcntl(sd, F_SETFL, val | O_NONBLOCK) == -1)
+                        return -1;
+                }
+                return 0;
+                
+            case UDT_RCVSYN :
+                val = fcntl(sd, F_GETFL, 0);
+                if (val  == -1) return -1;
+                if (*((bool*)optval) == true) {
+                    if (fcntl(sd, F_SETFL, val & ~O_NONBLOCK) == -1) {
+                        return -1;
+                    }
+                }
+                else {
+                    if (fcntl(sd, F_SETFL, val | O_NONBLOCK) == -1) {
+                        return -1;
+                    }
+                }
+                return 0;
+                break;
+            case UDT_SNDBUF:
+                oname = SO_SNDBUF;
+                break;
+            case UDT_RCVBUF:
+                oname = SO_RCVBUF;
+                break;
+            case UDT_LINGER:
+                oname = SO_LINGER;
+                break;
+            case UDT_SNDTIMEO:
+                oname = SO_SNDTIMEO;
+                break;
+            case UDT_RCVTIMEO:
+                oname = SO_RCVTIMEO;
+                break;
+            case UDT_REUSEADDR:
+                oname = SO_REUSEADDR;
+                break;
+            default:
+                errno = ENOPROTOOPT;
+                return -1;
+            }
+            return ::setsockopt(sd, olevel, oname, optval, olen);
+        }
         else
-            return ::UDT::setsockopt(sd-UDT_FD_BASE, level, ::UDT::SOCKOPT(optname), optval, optlen);
+            return ::UDT::setsockopt(sd-UDT_FD_BASE, level, optname, optval, optlen);
     }
-    int getsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t* optlenp) {
-        if (sd < UDT_FD_BASE)
-            return ::getsockopt(sd, level, optname, optval,optlenp);
+    int getsockopt(UDTSOCKET sd, int level, ::UDT::SOCKOPT optname, void* optval, socklen_t* optlenp) {
+        if (sd < UDT_FD_BASE) {
+            int level = SOL_SOCKET;
+            int oname;
+            int val;
+            switch (optname) {
+            /***
+             *  fcntl sets O_NONBLOCK for read and write
+             *  simaltaniozly, thus, it is not good for us.
+             * 
+             */
+            case UDT_SNDSYN:
+                val = fcntl(sd, F_GETFL, 0);
+                if (val == -1)
+                    return -1;
+                if (val | O_NONBLOCK)
+                    * (int*) optval = 0;
+                else
+                    * (int*) optval = 1;
+                
+                * optlenp = sizeof(int); 
+                return 0;
+            case UDT_RCVSYN :
+                val = fcntl(sd, F_GETFL, 0);
+                if (val == -1)
+                    return -1;
+                if (val | O_NONBLOCK)
+                    * (int*) optval = 0;
+                else
+                    * (int*) optval = 1;
+                
+                * optlenp = sizeof(int); 
+                return 0;
+            case UDT_SNDBUF:
+                oname = SO_SNDBUF;
+                break;
+            case UDT_RCVBUF:
+                oname = SO_RCVBUF;
+                break;
+            case UDT_LINGER:
+                oname = SO_LINGER;
+                break;
+            case UDT_SNDTIMEO:
+                oname = SO_SNDTIMEO;
+                break;
+            case UDT_RCVTIMEO:
+                oname = SO_RCVTIMEO;
+                break;
+            case UDT_REUSEADDR:
+                oname = SO_REUSEADDR;
+                break;
+            default:
+                errno = ENOPROTOOPT;
+                return -1;
+            }
+            return ::getsockopt(sd, level, oname, optval,optlenp);
+        }
         else {
             if (sizeof(socklen_t) == sizeof(int))
-                return ::UDT::getsockopt(sd, level, ::UDT::SOCKOPT(optname), optval, reinterpret_cast<int*>(optlenp));
+                return ::UDT::getsockopt(sd, level, optname, optval, reinterpret_cast<int*>(optlenp));
             else { // safe type "cast" from socklen_t* to int*
                 int int_optlen = static_cast<int>(*optlenp);
                 int res = ::UDT::getsockopt(sd-UDT_FD_BASE, level, ::UDT::SOCKOPT(optname), optval, &int_optlen);

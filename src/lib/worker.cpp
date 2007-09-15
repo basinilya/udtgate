@@ -2,39 +2,73 @@
 #include <utils.h>
 #include <logger.h>
 #include <socket_api.h>
+#include <loopbuffer.h>
 
 extern Logger logger;
 
 int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
 
-    int   bfsize = 256*1024;
-    char * data = new char[bfsize];
+    const int R_ACTIVE   =  1 << 0;
+    const int W_ACTIVE   =  1 << 1;
+    const int R_FWD_SHUT =  1 << 2;
+    const int W_FWD_SHUT =  1 << 3;
+    const int R_REV_SHUT =  1 << 4;
+    const int W_REV_SHUT =  1 << 5;
+    
+    int status = R_ACTIVE | W_ACTIVE;
 
+    int   blsize = 32*1024;
+    int   bfsize = 32*blsize;
+    
+    Loopbuffer fwd_buf(bfsize,blsize);
+    Loopbuffer rev_buf(bfsize,blsize);
+
+    
     SOCK_API::FDSET rset;
     SOCK_API::FDSET wset;
     SOCK_API::FDSET eset;
 
+    bool  true_bool = true;
+    bool  false_bool = false;
+    
+    if(SOCK_API::setsockopt(fd_in, 0,  UDT_SNDSYN, &false_bool, sizeof(bool)))
+        logger.log_die("worker: setsockopt(... UDT_SNDSYN ...): error");
+    if(SOCK_API::setsockopt(fd_out, 0, UDT_SNDSYN, &false_bool, sizeof(bool)))
+        logger.log_die("worker: setsockopt(... UDT_SNDSYN ...): error");
+    if(SOCK_API::setsockopt(sd, 0,     UDT_SNDSYN, &false_bool, sizeof(bool)))
+        logger.log_die("worker: setsockopt(... UDT_SNDSYN ...): error");
+    
     logger.log_debug(2, "start worker\n");
 
     char str[globals::dump_message*5+10];
 
     int maxfdn = SOCK_API::maxfdn(fd_out, sd);
 
-    bool active       = true;
-    bool fwd_shut     = false;
-    bool rev_shut     = false;
     time_t start;
     time_t stamp;
     
     start = stamp = time(0);
 
-    while (!fwd_shut and !rev_shut
+    timeval thp, thz;
+    
+    thz.tv_sec  =  0;
+    thz.tv_usec =  0;
+    
+    thp.tv_sec  =  0;
+    thp.tv_usec = 10;
+    
+    while ( (!(status & W_FWD_SHUT) or !(status & W_REV_SHUT))
             and (timeout == NULL or time(0) - stamp < timeout->tv_sec)) {
 
-        timeval th, to;
-        th.tv_sec = 0;
-        th.tv_usec = 1000;
+        logger.log_debug(3,"  Status = %d\n", status);
 
+        timeval to;       
+
+        to.tv_sec = 0;
+        to.tv_usec = 500000;
+        
+        ::select(0,NULL,NULL,NULL,&to);
+        
         rset.ZERO();
         wset.ZERO();
         eset.ZERO();
@@ -46,25 +80,15 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
         eset.SET(fd_out);
         eset.SET(sd);
 
-
-        //logger.log_debug(3,"  Select ...\n");
+        //logger.log_debug(3," rd select (active)... \n");
+        to = status & R_ACTIVE ? thz : thp;
+        if(SOCK_API::select(maxfdn, &rset, NULL, &eset, &to) > 0)
+            status |= R_ACTIVE;
+        else
+            status &= ~ R_ACTIVE;
+        //logger.log_debug(3," ... rd select (active)\n");
         
-        if (active) {
-            to.tv_sec = 0;
-            to.tv_usec = 0;
-            //logger.log_debug(3," rd select (active)... \n");
-            SOCK_API::select(maxfdn, &rset, NULL, &eset, NULL);
-            //logger.log_debug(3," ... rd select (active)\n");
-        }
-        else {
-            to = th;
-            //logger.log_debug(3," rd select (pass)... \n");
-            SOCK_API::select(maxfdn, &rset, NULL, &eset, &to);
-            //logger.log_debug(3," ... rd select (pass)\n");
-        }
-        
-        active = false;
-        
+       
         if (rset.ISSET(fd_in)) {
             wset.SET(sd);
         }
@@ -72,90 +96,106 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
             wset.SET(fd_out);
         }
         
-        to.tv_sec = 0;
-        to.tv_usec = 0;
+        eset.SET(fd_in);
+        eset.SET(fd_out);
+        eset.SET(sd);
+        
+        to = thz;
+        
         //logger.log_debug(3," wr select ... \n");
-        SOCK_API::select(maxfdn, NULL, &wset, &eset, &to);
+        
+        to = status & W_ACTIVE ? thz : thp;
+        if (SOCK_API::select(maxfdn, NULL, &wset, &eset, &to) > 0)
+            status |= W_ACTIVE;
+        else
+            status &= (~W_ACTIVE);
+        
         //logger.log_debug(3," ... wr select \n");
 
 
         // fd_in -> sd
-        if (rset.ISSET(fd_in) and wset.ISSET(sd) and !fwd_shut) {
+        int sz;
+        status &= ~(R_ACTIVE | W_ACTIVE);
 
-            int sz1  = 0;
-            active = true;
-
+        if (rset.ISSET(fd_in) and !fwd_buf.isful() and !(status & R_FWD_SHUT)) {
             //logger.log_debug(3," read ... \n");
-            sz1 = SOCK_API::read(fd_in, data, bfsize);
+            int n = fwd_buf.getWriteSpace();
+            sz = SOCK_API::read(fd_in, 
+                    fwd_buf.getWritePointer(), 
+                    n);
             //logger.log_debug(3," ... read \n");
-
-            
-            while (1) {
-                if (sz1 > 0) {
-                    //logger.log_debug(3," writen ... \n");
-                    int sz2 = SOCK_API::writen(sd, data, sz1);
-                    //logger.log_debug(3," ... writen\n");
-                    if (sz2 == sz1) {
-                        logger.log_debug(3,"  sd1 -> sd2 %d/%d bytes: [%s]\n", sz1, sz2,
-                                         utl::dump_str(str, data, bfsize, sz2, globals::dump_message));
-                        stamp = time(0);
-                        break;
-                    }
-                    else {
-                        logger.log_debug(3,"  sd1 -> sd2 close(write error)\n");
-                        fwd_shut= true;
-                    }
-                }
-                else if (sz1 == 0) {
-                    logger.log_debug(3,"  sd1 -> sd2 EOF\n");
-                    fwd_shut= true;
-                    // nothing
-                }
-                else {
-                    logger.log_debug(3,"  sd1 -> sd2 close(read error)\n");
-                    fwd_shut = true;
-                }
-                SOCK_API::shutdown(fd_in, SHUT_RD);
-                SOCK_API::shutdown(sd, SHUT_WR);
-                break;
+            if (sz > 0) {
+                fwd_buf.writen(sz);
+                logger.log_debug(3,"  sd1 -> sd2 read %d/%d bytes: [%s]\n", n, sz,
+                             utl::dump_str(str, fwd_buf.getReadPointer(), n, sz, globals::dump_message));
+            }
+            else if (sz == 0) {
+                //logger.log_debug(3,"  sd1 -> sd2 EOF\n");
+                //status |= R_FWD_SHUT;
+            }
+            else {
+                logger.log_debug(3,"  sd1 -> sd2 read error\n");
+                status |= (R_FWD_SHUT | W_FWD_SHUT);
             }
         }
-
-        // sd -> fd_out
-        if (rset.ISSET(sd) and wset.ISSET(fd_out) and !rev_shut) {
-
-            int sz1 = 0;
-            active = true;
-
-            sz1 = SOCK_API::read(sd, data, bfsize);
-            //logger.log_debug(3," worker sd2 read %d bytes from %d\n", sz1,sd);
-            while(1) {
-                if (sz1 > 0) {
-                    int sz2 = SOCK_API::writen(fd_out, data, sz1);
-                    if (sz2 == sz1) {
-                        logger.log_debug(3,"  sd2 -> sd1 %d/%d bytes: [%s]\n", sz1, sz2,
-                                         utl::dump_str(str, data, bfsize, sz2, globals::dump_message));
-                        stamp = time(0);
-                        break;
-                    }
-                    else {
-                        logger.log_debug(3,"  sd2 -> sd1 close (write error)\n");
-                        rev_shut = true;
-                    }
-                }
-                else if (sz1 == 0) {
-                    logger.log_debug(3,"  sd1 -> sd2 EOF\n");
-                    rev_shut= true;
-                    // nothing
-                }
-                else {
-                    logger.log_debug(3,"  sd2 -> sd1 close(read error)\n");
-                    rev_shut = true;
-                }
-                SOCK_API::shutdown(sd, SHUT_RD);
-                SOCK_API::shutdown(fd_out, SHUT_WR);
-                break;
+        if (wset.ISSET(sd) and !fwd_buf.isempty() and !(status & W_FWD_SHUT)) {
+            sz = SOCK_API::write(sd, 
+                    fwd_buf.getReadPointer(),
+                    fwd_buf.getReadSpace());
+            if (sz>0) {
+                logger.log_debug(3,"  sd1 -> sd2 write %d/%d bytes: [%s]\n", fwd_buf.getReadSpace(), sz,
+                             utl::dump_str(str, fwd_buf.getReadPointer(), fwd_buf.getReadSpace(), sz, globals::dump_message));
+                fwd_buf.readn(sz);
             }
+            else {
+                logger.log_debug(3,"  sd1 -> sd2 write error (%d)\n", sz);
+                status |= (W_FWD_SHUT | R_FWD_SHUT);
+            }
+        }
+        if (fwd_buf.isempty() and (status & R_FWD_SHUT)) {
+            logger.log_debug("  W_FWD_SHUT status = %d\n", status);
+            status |= W_FWD_SHUT;
+        }
+            
+        if (rset.ISSET(sd) and !rev_buf.isful() and !(status & R_REV_SHUT)) {
+            //logger.log_debug(3," read ... \n");
+            int n = rev_buf.getWriteSpace();
+            sz = SOCK_API::read(fd_in, 
+                    rev_buf.getWritePointer(), 
+                    n);
+            //logger.log_debug(3," ... read \n");
+            if (sz > 0) {
+                logger.log_debug(3,"  sd2 -> sd1 read %d/%d bytes: [%s]\n", n, sz,
+                             utl::dump_str(str, rev_buf.getWritePointer(), n, sz, globals::dump_message));
+                rev_buf.writen(sz);
+            }
+            else if (sz == 0) {
+                logger.log_debug(3,"  sd2 -> sd1 EOF\n");
+                status |= R_REV_SHUT;
+            }
+            else {
+                logger.log_debug(3,"  sd2 -> sd1 read error\n");
+                status |= (R_REV_SHUT | W_REV_SHUT);
+            }
+        }
+        if (wset.ISSET(fd_out) and !rev_buf.isempty() and !(status & W_REV_SHUT)) {
+            int n = rev_buf.getReadSpace();
+            sz = SOCK_API::write(sd, 
+                    rev_buf.getReadPointer(),
+                    n);
+            if (sz>0) {
+                logger.log_debug(3,"  sd2 -> sd1 write %d/%d bytes: [%s]\n", rev_buf.getReadSpace(), sz,
+                             utl::dump_str(str, rev_buf.getReadPointer(), n, sz, globals::dump_message));
+                rev_buf.readn(sz);
+            }
+            else {
+                logger.log_debug(3,"  sd2 -> sd1 write error (%d)\n", sz);
+                status |= (W_REV_SHUT | R_REV_SHUT);
+            }
+        }
+        if (rev_buf.isempty() and (status & R_REV_SHUT)) {
+            logger.log_debug("  W_REV_SHUT status = %d\n", status);
+            status |= W_REV_SHUT;
         }
     }
     SOCK_API::close(fd_in);
@@ -163,7 +203,8 @@ int utl::worker (int fd_in, int fd_out, int sd, timeval * timeout) {
         SOCK_API::close(fd_out);
     SOCK_API::close(sd);
 
-    delete [] data;
+    //SOCK_API::shutdown(sd, SHUT_RD);
+    //SOCK_API::shutdown(fd_out, SHUT_WR);
 
     logger.log_debug(2, "stop worker\n");
     return 0;

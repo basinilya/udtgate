@@ -7,14 +7,14 @@ my $newver;
 my $rewrite = 0;
 
 open(IN, "configure.ac");
-($ver) = grep {$_=~/^AC_INIT\(.*\[(\d+\.\d+(-\w+)?)\]/ and $_= $1} (<IN>);
+($ver) = grep {$_=~/^AC_INIT\(.*\[(\d+\.\d+(-\w+\d)?)\]/ and $_= $1} (<IN>);
 
+my $verhint = $ver;
 
-my ($maj,$min,$tag) = split /\./, $ver; 
-my ($newmaj,$newmin); 
+$verhint =~ s/(\d+)$/$1+1/e;
 
 while (1) {
-    print "Old release $ver, enter new relase ($maj.".($min+1)."): ";
+    print "Old release $ver, enter new relase ($verhint): ";
     $newver = <>;
     
     chomp $newver;
@@ -23,21 +23,14 @@ while (1) {
     
     
     if ($newver =~ /^\s*$/) {
-    	$newmaj = $maj;
-    	$newmin = $min+1;
-    	$newver = "$newmaj.$newmin";
+    	$newver = "$verhint";
     	last;
     }
     elsif ($newver =~ /^(\d+)\.(\d+)(-\w+)?$/) {
-    	$newmaj = $1; $newmin = $2;
         if ("$newver" eq "$ver") {
             print "Error, new version ($newver) can not be same as old version ($ver)\n";
             next;
         }
-    	elsif ($newmaj < $maj or ($newmaj == $maj and $newmin < $min)) {
-            print "Error, new version ($newmaj.$newmin) < old version ($maj,$min)\n";
-    		next;
-    	}
     	else {
     		last;
     	}
@@ -107,7 +100,7 @@ _system("automake");
 
 my $tag = $newver;
 $tag =~ s/\./-/g;
-print $tag;
+print "TAG = $tag\n";
 if ($updatecvs) {
     _system("cvs commit -m 'Release $newver'");
     _system("cvs tag -d rel-$tag");

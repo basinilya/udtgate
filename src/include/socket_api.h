@@ -24,6 +24,17 @@ namespace SOCK_API
         void CLR(UDTSOCKET sd);
         bool ISSET(UDTSOCKET sd);
     };
+    
+    inline _proto_t  getsocktype(UDTSOCKET sd) {
+        return (sd < UDT_FD_BASE) ? TCP : UDT;
+    }
+    inline UDTSOCKET getsockfd(UDTSOCKET sd) {
+        return (sd < UDT_FD_BASE) ? sd : sd-UDT_FD_BASE;
+    }
+    inline UDTSOCKET embedsockfd(UDTSOCKET sd, _proto_t proto) {
+        return proto == UDT ? sd + UDT_FD_BASE : sd;
+    }
+    
 
     UDTSOCKET socket(int domain, int type, _proto_t proto);
 
@@ -57,8 +68,8 @@ namespace SOCK_API
     int close(UDTSOCKET sd);
     int shutdown(UDTSOCKET sd,int how);
 
-    int setsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t optlen);
-    int getsockopt(UDTSOCKET sd, int level, int optname, void* optval, socklen_t* optlenp);
+    int setsockopt(UDTSOCKET sd, int level, ::UDT::SOCKOPT optname, void* optval, socklen_t optlen);
+    int getsockopt(UDTSOCKET sd, int level, ::UDT::SOCKOPT optname, void* optval, socklen_t* optlenp);
     
     int maxfdn(UDTSOCKET sd1, UDTSOCKET sd2);
     int maxfdn(std::set<UDTSOCKET> sd_set);

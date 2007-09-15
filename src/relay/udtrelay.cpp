@@ -7,6 +7,7 @@
 #include <udtgate.h>
 #include <utils.h>
 #include <stdlib.h>
+#include <socket_api.h>
 #include "udtrelay.h"
 
 using namespace std;
@@ -240,8 +241,8 @@ int main(int argc, char* argv[], char* envp[])
     }
 
     globals::app_ident   = "udtrelay";
-    globals::sock_ident =  "socks server";
-    globals::peer_ident  = "peers server";
+    globals::sock_ident =  "departing";
+    globals::peer_ident  = "arriving";
     globals::serv_ident  = globals::app_ident;
 
     
@@ -267,7 +268,7 @@ int main(int argc, char* argv[], char* envp[])
 
     if ((0 == argc-optind))
         logger.log_die("\nudtrelay (%s, build on \"%s\" with UDT v%s)\n\n%s\n\n", 
-                PACKAGE_STRING, __DATE__, "?.?", "try -h for help");
+                PACKAGE_STRING, __DATE__, "?.?", "Use -h for help");
     
     if ((3 > argc-optind))
         logger.log_die("missed arguments\n%s", usage);
@@ -322,7 +323,7 @@ int main(int argc, char* argv[], char* envp[])
     	
     	if (mode == DUAL or mode == SERVER) { // udt->tcp
     		server_pid = fork(); 
-                if (server_pid==-1) logger.log_die("% fork failed.\n", globals::peer_ident);
+                if (server_pid==-1) logger.log_die("% server fork failed.\n", globals::peer_ident);
 			if (!server_pid) {
 				mode = SERVER;
 				globals::serv_ident = globals::peer_ident;
@@ -331,7 +332,7 @@ int main(int argc, char* argv[], char* envp[])
     	}
     	if (mode == DUAL or mode == CLIENT) { // tcp->udt
     		client_pid = fork();
-			if (client_pid==-1) logger.log_die("% fork failed.\n", globals::sock_ident);
+			if (client_pid==-1) logger.log_die("% server fork failed.\n", globals::sock_ident);
 			if (!client_pid) {
 				mode = CLIENT;
 				globals::serv_ident = globals::sock_ident;
@@ -350,9 +351,9 @@ int main(int argc, char* argv[], char* envp[])
     	while (errno == EINTR);
     	
     	if (pid == server_pid)
-    		logger.log_notice("%s died. exiting.\n", globals::peer_ident);
+    		logger.log_notice("%s server died. exiting.\n", globals::peer_ident);
     	if (pid == client_pid)
-    		logger.log_notice("%s died. exiting.\n", globals::sock_ident);
+    		logger.log_notice("%s server died. exiting.\n", globals::sock_ident);
     	
     	exit_handler(SIGCHLD);
 
@@ -411,7 +412,7 @@ int main(int argc, char* argv[], char* envp[])
                 logger.log_err("udt listen: %s\n", UDT::getlasterror().getErrorMessage());
                 return 0;
             }
-            logger.log_info("%s is ready at port: %s\n", globals::peer_ident, sPeer_listen_port);
+            logger.log_info("accepting %s connections at port: %s\n", globals::peer_ident, sPeer_listen_port);
         }
     }
     else {
@@ -429,7 +430,7 @@ int main(int argc, char* argv[], char* envp[])
             logger.log_err("tcp listen error\n");
             return 0;
         }
-        logger.log_info("%s is ready at port: %s\n", globals::sock_ident, sSocks_port);
+        logger.log_info("accepting %s connections at port: %s\n", globals::sock_ident, sSocks_port);
     }
     //cout << "server is ready at port: " << service << endl;
 
@@ -709,11 +710,11 @@ void* start_child(void *servsock) {
             cargs.udtsock = peersock;
         }
         
-        //pthread_create(&rcvthread, NULL, peer2sock_worker, &cargs);
-        //pthread_create(&sndthread, NULL, sock2peer_worker, &cargs);
-        //pthread_join(rcvthread, NULL);
-        //pthread_join(sndthread, NULL);
-        utl::worker(cargs.tcpsock,cargs.udtsock+0xFFFFFF);
+        pthread_create(&rcvthread, NULL, peer2sock_worker, &cargs);
+        pthread_create(&sndthread, NULL, sock2peer_worker, &cargs);
+        pthread_join(rcvthread, NULL);
+        pthread_join(sndthread, NULL);
+        //utl::worker(cargs.tcpsock, SOCK_API::embedsockfd(cargs.udtsock, SOCK_API::UDT));
         break;
     }
 
@@ -729,7 +730,110 @@ void* start_child(void *servsock) {
     	logger.log_notice("close %s connection: %s:%s\n", conntype, clienthost, clientservice);
     return NULL;
 }
+void* sock2peer_worker(void * ar )
+{
+    cargs_t * pCargs = (cargs_t *) ar;
+    char* data;
+    data = new char[rcvbuffer];
 
+    struct pollfd pfd[1];
+
+    pfd[0].fd = pCargs->tcpsock;
+    pfd[0].events = POLLIN;
+
+    logger.log_debug(2, "start tcp->udt thread\n");
+
+    while (true) {
+
+        int sz, pollr;
+
+        pollr = poll(pfd,1,10);
+        if (pollr == 0)
+            if (pCargs->shutdown == 1)
+                break;
+            else
+                continue;
+
+        sz = recv(pCargs->tcpsock, data, rcvbuffer, 0);
+
+        if (sz == -1) {
+            logger.log_notice("socks client recv error\n");
+            break;
+        }
+        if (sz == 0) {
+            break;
+        }
+        //logger.log_debug(3, "tcp recv %d bytes\n", sz);
+        if (SOCK_API::writen(SOCK_API::embedsockfd(pCargs->udtsock,SOCK_API::UDT), data, sz) == UDT::ERROR) {
+            logger.log_err("udt send error: %s\n", UDT::getlasterror().getErrorMessage());
+            break;
+        }
+
+        char str[globals::dump_message*5+10];
+        logger.log_debug(3,"  tcp->udt %d bytes: [%s]\n", sz, 
+                utl::dump_str(str, data, rcvbuffer, sz, globals::dump_message));
+        //logger.log_debug(3, "udt send %d bytes\n", sz);
+    }
+
+    delete [] data;
+
+    pCargs->shutdown = 1;
+
+    //close(cargsp->tcpsock);
+    //UDT::close(cargsp->udtsock);
+
+    logger.log_debug(2, "stop tcp->udt thread\n");
+    return NULL;
+}
+
+void* peer2sock_worker(void* ar)
+{
+    cargs_t * pCargs = (cargs_t *) ar;
+    char* data;
+    data = new char[rcvbuffer];
+
+    logger.log_debug(2, "start udt->tcp thread\n");
+
+    while (true)
+    {
+        int sz;
+        do {
+            sz =  UDT::recv(pCargs->udtsock, data, rcvbuffer, 0);
+            //cout << "###" << endl;
+            if (pCargs->shutdown) break;
+        } while (sz == 0);
+        //logger.log_debug(3,"udt recv %d bytes\n", sz);
+        if (pCargs->shutdown)
+            break;
+        if (UDT::ERROR == sz)
+        {
+            if (UDT::getlasterror().getErrorCode() == 2001)
+                logger.log_notice("udt peer connection closed\n");
+            else
+                logger.log_err("udt recv: %s", UDT::getlasterror().getErrorMessage());
+
+            pCargs->shutdown = 0;
+            break;
+        }
+        if (SOCK_API::writen(SOCK_API::embedsockfd(pCargs->tcpsock, SOCK_API::TCP), data, sz) == -1 ) {
+            cerr << "send error" << endl;
+            break;
+        }
+
+        char str[globals::dump_message*5+10];
+        logger.log_debug(3,"  udt->tcp %d bytes: [%s]\n", sz, 
+                utl::dump_str(str, data, rcvbuffer, sz, globals::dump_message));
+    }
+
+    delete [] data;
+    pCargs->shutdown = 1;
+
+    //close(cargsp->tcpsock);
+    //UDT::close(cargsp->udtsock);
+
+    logger.log_debug(2, "stop udt->tcp thread\n");
+    return NULL;
+}
 bool is_custom_value(UDTOpt optcode) {
     UDT_OPTIONS_T::iterator it = udt_options.find(optcode);
     return it == udt_options.end() ? false : true;
