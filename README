@@ -1,5 +1,5 @@
                UDTGATE - USER DATA TRANSPORT GATEWAY SYSTEM
-                             Ver 1.3-fix1 (2007-09-13)
+                             Ver 1.3-fix5 (2007-09-17)
 
 DISCLAIMER
 
@@ -48,7 +48,7 @@ INTRODUCTION
     and
 
     * udtrelay - lightweight proxy allowing to pass TCP connections
-    between two sites trough UDT tunnel. 
+    between two sites over UDT tunnel. 
     See README.udtrelay for details.
 
 
@@ -84,7 +84,7 @@ AVAILABILITY
     - visit CVS section on
       http://sourceforge.net/projects/udtgate/
   Source Download:
-    - visit Download  section on
+    - visit the <Download>  section on
       http://sourceforge.net/projects/udtgate/
   Web page:
     - http://udtgate.sourceforge.net
@@ -95,9 +95,13 @@ AVAILABILITY
 
 PREREQUESTIVES
 
-   * UDT package (mandatory) 
+   * UDT package ver 4.X (mandatory)
      
      http://udt.sourceforge.net
+
+     (! Important !) You should use *gnu_conf* branch in order avoid 
+     compilation problems. 
+     Latest tested distribution is udt.sdk.4.0.beta2.gnu_conf.tar.gz.
    
    * Install package to "socksify" applications (optional).
 
@@ -108,11 +112,9 @@ PREREQUESTIVES
      - For Windows - SocksCap
        http://www.socks.permeo.com/
 
-     
 INSTALLATION
 
   See the INSTALL file distributed with this package.
-
 
 COPYING AND COPYRIGHTS
 
@@ -129,8 +131,14 @@ CODE UPDATE ANNOUNCEMENTS
   See the NEWS file and the ChangeLog file for details on what has
   changed between releases.
 
-  We hate broadcasting announce messages to other mailing lists and
-  newsgroups, so there is a mailing list set up to handle release
+  If You want to track new releases, please use Source Forge's package 
+  monitoring facility:
+   1. Register as Source Forge user and login.
+   2. Go to <Download> section on http://sourceforge.net/projects/udtgate/
+   3. Click the [Monitor] icon nearby package entry. 
+  
+  You can also subscribe to  
+  
   announcements. Any time we post new release package to SourceForge,
   we'll mail this fact to udtgate-announce@lists.sourceforge.net. See
   the MAILING LISTS section described below to sign up for these
@@ -179,6 +187,9 @@ SUBMITTING BUG REPORTS AND FEATURE REQUESTS
 
 THANKS
 
+  Developers are greatful to Source Forge team for an excelent project
+  maintenance platform. 
+  
   Special thanks to UDT developers (http://udt.sourceforge.net/) from
   National Center of Data Mining (USA, Illinois) whose product
   encouraged us to start this project.
@@ -190,4 +201,3 @@ THANKS
   
   We've probably forgotten people on this list.  Let us know if you've
   contributed code and we've left you out.
-

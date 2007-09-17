@@ -1,3 +1,41 @@
+Prerequestives
+==============
+   * UDT package ver 4.X (mandatory)
+     
+     http://udt.sourceforge.net
+
+     (! Important !) You should use *gnu_conf* branch in order avoid 
+     compilation problems. 
+     Latest tested distribution is udt.sdk.4.0.beta2.gnu_conf.tar.gz.
+   
+   * Install some package to "socksify" applications (optional).
+
+     - For Unix    - runsocks
+       see ports or download:
+       http://freeware.sgi.com/source/socks5/
+       
+     - For Windows - SocksCap
+       http://www.socks.permeo.com/
+
+Installation
+============
+
+   Please follow the common procedure for autoconf source packages:
+       
+   $ tar zxvf udtgate-x.x.tar.gz
+   $ cd  udtgate-x.x
+   $ ./configure [--with-udt=/path/to/udt-prefix]
+   $ make
+   $ su
+   # make install
+   
+   You don't need to use "--with-udt" option if UDT package was installed to
+   standard location.
+   
+   For details, see details bellow.
+
+====================================================================
+
 Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002 Free Software
 Foundation, Inc.
 

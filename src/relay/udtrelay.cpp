@@ -614,14 +614,16 @@ void* start_child(void *servsock) {
                 break;
             }
             
-            int rcvbuf = 1024*1024;
             
+            /*
+            int rcvbuf = 1024*1024;
             if(setsockopt(peersock, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(int)))
-                logger.log_die("setsockopt\n");
+                logger.log_die("setsockopt: failed\n");
             if(setsockopt(peersock, SOL_SOCKET, SO_SNDBUF, &rcvbuf, sizeof(int)))
-                logger.log_die("setsockopt\n");
+                logger.log_die("setsockopt: failed\n");
+                */
 
-            logger.log_debug(2, "connected\n");
+            logger.log_debug(2, "connected.\n");
 
             spkt.cd = 90;
             UDT::send(cargs.udtsock,(char*) &spkt, sizeof(spkt), 0);
@@ -743,16 +745,16 @@ void* sock2peer_worker(void * ar )
 
     logger.log_debug(2, "start tcp->udt thread\n");
 
-    while (true) {
+    while (!pCargs->shutdown) {
 
         int sz, pollr;
 
-        pollr = poll(pfd,1,10);
+        while(EINTR == (pollr = poll(pfd,1,10))) {};
+        
         if (pollr == 0)
-            if (pCargs->shutdown == 1)
-                break;
-            else
-                continue;
+            continue;
+        else if (poll < 0)
+            break;
 
         sz = recv(pCargs->tcpsock, data, rcvbuffer, 0);
 
@@ -764,7 +766,7 @@ void* sock2peer_worker(void * ar )
             break;
         }
         //logger.log_debug(3, "tcp recv %d bytes\n", sz);
-        if (SOCK_API::writen(SOCK_API::embedsockfd(pCargs->udtsock,SOCK_API::UDT), data, sz) == UDT::ERROR) {
+        if (SOCK_API::writen(SOCK_API::embedsockfd(pCargs->udtsock,SOCK_API::UDT), data, sz) < 0) {
             logger.log_err("udt send error: %s\n", UDT::getlasterror().getErrorMessage());
             break;
         }
@@ -793,18 +795,18 @@ void* peer2sock_worker(void* ar)
     data = new char[rcvbuffer];
 
     logger.log_debug(2, "start udt->tcp thread\n");
-
-    while (true)
+    
+    UDT::setsockopt(pCargs->udtsock, 0, UDT_RCVTIMEO, new int(100), sizeof(int));
+    
+    while (!pCargs->shutdown)
     {
         int sz;
         do {
             sz =  UDT::recv(pCargs->udtsock, data, rcvbuffer, 0);
-            //cout << "###" << endl;
-            if (pCargs->shutdown) break;
-        } while (sz == 0);
+        } while (sz == 0 and !pCargs->shutdown);
         //logger.log_debug(3,"udt recv %d bytes\n", sz);
-        if (pCargs->shutdown)
-            break;
+        //if (pCargs->shutdown)
+            //break;
         if (UDT::ERROR == sz)
         {
             if (UDT::getlasterror().getErrorCode() == 2001)

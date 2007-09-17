@@ -8,8 +8,10 @@ DESCRIPTION
 
 SCENARIO
 
-  [           SITE1           ]                         [       SITE2          ]
-   appl1 -(socks4)-> udtrelay <........UDT tunnel.......> udtrelay -----> appl2 
+  [          SITE1               ]                   [          SITE2          ]
+  [                              ]                   [                         ]
+  [appl[1] --socks4--> udtrelay..].....UDT tunnel....[..udtrelay -----> appl[2]]
+  [                              ]                   [                         ]
 
 EXAMPLES RUNING UDTRELAY
 

@@ -2,11 +2,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([udtgate], [1.3-fix1], [vkonoplev@acm.org])
+AC_INIT([udtgate], [1.3-fix5], [vkonoplev@acm.org])
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE
 AC_PROG_RANLIB
 AC_LANG_CPLUSPLUS
+
+AC_INCLUDES_DEFAULT
+
 AC_CONFIG_SRCDIR([src/lib/socket_api.cpp])
 AC_CONFIG_HEADER([src/include/config.h])
 
@@ -35,7 +38,9 @@ case "$target" in
         ;;
 esac
 
+CPPFLAGS="$CPPFLAGS -I/usr/local/include"
 CXXFLAGS="$CXXFLAGS -DOS_$OS"
+LDFLAGS="$LDFLAGS -L/usr/local/lib"
 
 # Debug option processing
 AC_ARG_ENABLE(debug,
