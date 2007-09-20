@@ -40,9 +40,9 @@ private:
 
     static const int MAX_MSG_SZ =  1024;
 
-    void _log_debug    (int level, const char * fmt, const va_list ap);
-    void _log_msg      (const int pri, const char * fmt, const va_list ap);
-    void _log_msg_pref (const char * pref, const int pri, const char * fmt, const va_list ap);
+    void _log_debug    (int level, const char * fmt, va_list ap);
+    void _log_msg      (const int pri, const char * fmt, va_list ap);
+    void _log_msg_pref (const char * pref, const int pri, const char * fmt, va_list ap);
 };
 
 #endif

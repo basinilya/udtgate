@@ -54,7 +54,7 @@ if test $udt_include_ok != "no"
     )
 fi
 
-LDFLAGS="$LDFLAGS -static"
+#LDFLAGS="$LDFLAGS -static"
 
 AC_MSG_NOTICE()
 AC_MSG_NOTICE([UDT library looks like ok :)])

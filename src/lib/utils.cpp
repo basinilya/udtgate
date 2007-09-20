@@ -26,12 +26,11 @@ namespace utl {
         // get minimal
         sz = buf_sz < rcv_sz ? buf_sz : rcv_sz;
         sz = sz  < prn_sz ? sz  : prn_sz;
-        int p = 0;
+        int p = 0; // 
         for (int i = 0; i < sz; i++) {
             char c = buf[i];
             if (c >= ' ' and c <= '~') {
-                str[i] = c;
-                ++p;
+                *(str+(p++)) = c;
             }
             else
                 p += sprintf(str+p,"<%03d>", c);
@@ -39,7 +38,7 @@ namespace utl {
         if (prn_sz < rcv_sz) {
             p += sprintf(str+p,"...");
         }
-        str[++p] = '\0';
+        str[p] = '\0';
         return str;
     }
 

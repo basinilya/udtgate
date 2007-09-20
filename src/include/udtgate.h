@@ -71,6 +71,10 @@ struct sock_pkt {
     char dstport[2];
     char dstip[4];
 };
+struct sock_pkt_0 {
+    struct sock_pkt pkt;
+    char null;
+};
 #pragma pack()
 
 /*

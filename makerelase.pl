@@ -90,10 +90,15 @@ _system("sed '/^AC_INIT/ s/\\[$V\\]/[$newver]/' < configure.ac > configure.ac.ne
 _system("sed '2 {s/Ver .*/Ver $newver ($date)/}' < README > README.new");
 _system("mv configure.ac.new configure.ac");
 _system("mv README.new README");
-_system("cp NEWS NEWS.sav");
-_system("echo '$date Version $newver\n\    *\n\n'> NEWS");
-_system("cat NEWS.sav >> NEWS");
-_system("vi NEWS");
+
+foreach ('ChangeLog', 'NEWS') {
+	my $F = $_;
+    _system("cp $F $F.sav");
+    _system("echo '$date Version $newver\n\    *\n\n'> $F");
+    _system("cat $F.sav >> $F");
+    _system("vi $F");
+}
+
 
 _system("autoconf");
 _system("automake");

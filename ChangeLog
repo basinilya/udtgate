@@ -1,0 +1,12 @@
+
+    2007-09-20: fixed: minor bug in utl::dump_str()
+
+2007-09-20 Version 1.4
+    
+    * done:  custom minisocks library for "socksifying" user applications
+
+    * fixed: bug in udtrelay.cpp - close not initialized socket and hung 
+             up after unsuccessful connection
+    * fixed: config.sub corrected to support x86_64 machine
+    * fixed: "const" declaration removed from log_debug, log_mesg and 
+             log_mesg_pref to compile with gcc 3.4.6 on SL4

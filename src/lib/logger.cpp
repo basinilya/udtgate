@@ -59,7 +59,7 @@ void Logger::log_err (const char * fmt ...) {
 	_log_msg(LOG_ERR, fmt, ap);
 	va_end(ap);
 }
-void Logger::_log_debug (int level, const char * fmt, const va_list ap) {
+void Logger::_log_debug (int level, const char * fmt, va_list ap) {
 
 	const int max_sz = 7;
 	char pref[max_sz];
@@ -73,7 +73,7 @@ void Logger::_log_debug (int level, const char * fmt, const va_list ap) {
 	
 	_log_msg_pref(pref, LOG_DEBUG, fmt, ap);
 }
-void Logger::_log_msg (const int pri, const char * fmt, const va_list ap) {
+void Logger::_log_msg (const int pri, const char * fmt, va_list ap) {
 	char fmsg[MAX_MSG_SZ];
 	
 	fmsg[0] = '\0';
@@ -95,7 +95,7 @@ void Logger::_log_msg (const int pri, const char * fmt, const va_list ap) {
 
     m_stateCont = fmsg[strlen(fmt)-1] == '\n' ? false:true;
 }
-void Logger::_log_msg_pref (const char * pref, const int pri, const char * fmt, const va_list ap) {
+void Logger::_log_msg_pref (const char * pref, const int pri, const char * fmt, va_list ap) {
 	char msg[MAX_MSG_SZ];
 	strncpy(msg, pref, MAX_MSG_SZ-1);
 	strncat(msg, fmt,  MAX_MSG_SZ-strlen(msg)-1);

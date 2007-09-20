@@ -552,7 +552,10 @@ void* start_child(void *servsock) {
     
     while (true) {
         if (mode == SERVER) { // utd -> tcp
+            int peersock = socket(AF_INET,SOCK_STREAM,0);
+
             cargs.udtsock = *(UDTSOCKET*) servsock;
+            cargs.tcpsock = peersock;
 
             logger.log_debug(2, "udt accepted\n");
             
@@ -584,7 +587,6 @@ void* start_child(void *servsock) {
 
             logger.log_debug(2, "udt <- soks (+) recv\n");
 
-            int peersock = socket(AF_INET,SOCK_STREAM,0);
 
             sockaddr_in paddr;
             memset(&paddr,0,sizeof(paddr));
@@ -613,8 +615,7 @@ void* start_child(void *servsock) {
                 logger.log_warning("canot connect\n");
                 break;
             }
-            
-            
+
             /*
             int rcvbuf = 1024*1024;
             if(setsockopt(peersock, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(int)))
@@ -628,12 +629,14 @@ void* start_child(void *servsock) {
             spkt.cd = 90;
             UDT::send(cargs.udtsock,(char*) &spkt, sizeof(spkt), 0);
             logger.log_debug(2, "udt <- soks send\n");
-            cargs.tcpsock = peersock;
         }
         else { // tcp -> udt
 
-            cargs.tcpsock = *(int*) servsock;
+            UDTSOCKET peersock = UDT::socket(pPeeraddr->ai_family, pPeeraddr->ai_socktype, pPeeraddr->ai_protocol);
 
+            cargs.tcpsock = *(int*) servsock;
+            cargs.udtsock = peersock;
+            
             recv(cargs.tcpsock,&spkt, sizeof(spkt), MSG_WAITALL);
 
             logger.log_debug(2, "tcp -> socks recv (-)\n");
@@ -658,7 +661,6 @@ void* start_child(void *servsock) {
 
             logger.log_debug(2, "tcp -> socks recv (+)\n");
 
-            UDTSOCKET peersock = UDT::socket(pPeeraddr->ai_family, pPeeraddr->ai_socktype, pPeeraddr->ai_protocol);
             setsockopt(peersock);
             
 
@@ -708,8 +710,6 @@ void* start_child(void *servsock) {
                 logger.log_err("remote peer socks error\n");
                 break;
             }
-
-            cargs.udtsock = peersock;
         }
         
         pthread_create(&rcvthread, NULL, peer2sock_worker, &cargs);
