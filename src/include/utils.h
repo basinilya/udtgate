@@ -15,7 +15,8 @@
 #include <sstream>
 #include <assert.h>
 #include <stdlib.h>
-
+#include <vector>
+#include <string>
 #include <udt/udt.h>
 
 
@@ -64,6 +65,11 @@ namespace utl {
         t1->tv_usec = t2 % 1000000;
         return t1; 
     }
+    std::vector<std::string> split (const std::string &inString, 
+                                      const std::string &separator);
+    std::vector<std::string> split (const std::string &inString, 
+                                      const char * const separator);
+
 }
 #endif
 

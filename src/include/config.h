@@ -11,8 +11,14 @@
    */
 #define HAVE_DIRENT_H 1
 
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#define HAVE_DLFCN_H 1
+
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 /* #undef HAVE_DOPRNT */
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#define HAVE_FCNTL_H 1
 
 /* Define to 1 if you have the `fork' function. */
 #define HAVE_FORK 1
@@ -28,6 +34,9 @@
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
+
+/* Define to 1 if you have the `dl' library (-ldl). */
+#define HAVE_LIBDL 1
 
 /* Define to 1 if you have the `udt' library (-ludt). */
 #define HAVE_LIBUDT 1
@@ -66,6 +75,10 @@
 
 /* Define to 1 if you have the `socket' function. */
 #define HAVE_SOCKET 1
+
+/* Define to 1 if `stat' has the bug that it succeeds when given the
+   zero-length file name argument. */
+/* #undef HAVE_STAT_EMPTY_STRING_BUG */
 
 /* Define to 1 if stdbool.h conforms to C99. */
 /* #undef HAVE_STDBOOL_H */
@@ -156,6 +169,10 @@
 /* Define to 1 if the system has the type `_Bool'. */
 /* #undef HAVE__BOOL */
 
+/* Define to 1 if `lstat' dereferences a symlink specified with a trailing
+   slash. */
+#define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
+
 /* Name of package */
 #define PACKAGE "udtgate"
 
@@ -235,6 +252,9 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */
+
+/* Define to `int' if <sys/types.h> does not define. */
+/* #undef ssize_t */
 
 /* Define to the type of an unsigned integer type of width exactly 32 bits if
    such a type exists and the standard includes do not define it. */

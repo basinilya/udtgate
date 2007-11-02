@@ -107,6 +107,7 @@ m4_include([checkudt.m4])
 # Well, GO!
 
 AC_CONFIG_FILES([Makefile
+		 scripts/Makefile
                  src/lib/Makefile
                  src/relay/Makefile
                  src/gate/Makefile

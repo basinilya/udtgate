@@ -2,3 +2,4 @@
 Makefile
 udtrelay
 gmon.out
+.libs

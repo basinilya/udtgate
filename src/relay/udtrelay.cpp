@@ -73,6 +73,7 @@ enum {DUAL,SERVER,CLIENT} mode  = DUAL;
 
 int rcvbuffer = BLOCK_SIZE;
 
+
 typedef struct {
     char * optname;
     UDTOpt	   optcode;
@@ -105,10 +106,12 @@ int main(int argc, char* argv[], char* envp[])
 {
 
     int c;
-    static char optstring [] = "hdDNLCSP:R:B:c:U:X:";
+    static char optstring [] = "hdDNLCSP:R:B:c:U:X:A:";
     opterr=0;
     UDTSOCKET ludtsock;
     int       ltcpsock = 0;
+    vector<string> custom_acl_entries;
+    acl_table custom_acl_table;
 
     logger.setInteractive(true);
     
@@ -135,10 +138,13 @@ int main(int argc, char* argv[], char* envp[])
         "                     this option is 20\n"
         "    -D               Demonize.\n"
         "    -L               Log connections\n"
-        "    -N               Allow socks connections from attached subnets \n"
-        "                     (by default only internal connections are permited);\n"
+        "    -N               Allow connections from/to attached subnets \n"
+        "                     (by default only connections from/to local device"
+        "                     are permited);\n"
         "                     appling this option twice - allows all incoming\n"
-        "                     coonections.\n"
+        "                     and outgoing coonections.\n"
+        "    -A <acl>         (-) Setup custom access control list for incoming "
+        "                     connections, see README.udtrelay for details."
         "    -C               Client-only mode: don't accept incoming peer/UDT\n"
         "                     connections.\n"
         "    -S               Server-only mode: don't accept outgoing socks\n"
@@ -173,6 +179,18 @@ int main(int argc, char* argv[], char* envp[])
         case 'N':
             globals::net_access++;
             break;
+        case 'A':
+            globals::is_custom_acl = true;
+            custom_acl_entries = utl::split(string(optarg), "+"); 
+            for(int i=0; i<custom_acl_entries.size();i++) {
+                cout << custom_acl_entries[i].c_str() << endl;
+                if (! custom_acl_table.add(custom_acl_entries[i])) {
+                    logger.log_die("Error parse -A option value in %s\n",
+                            custom_acl_entries[i].c_str());
+                }
+            }
+            exit(0);
+            break;
         case 'd':
             globals::debug_level++;
             break;
@@ -182,10 +200,10 @@ int main(int argc, char* argv[], char* envp[])
                 logger.log_die("Wrong -X option value\n%s", usage);
             break;
         case 'D':
-            globals::demonize = true;
+            globals::is_demonize = true;
             break;
         case 'L':
-            globals::track_connections = true;
+            globals::is_track_connections = true;
             break;
         case 'C':
             if (mode != DUAL)
@@ -198,7 +216,7 @@ int main(int argc, char* argv[], char* envp[])
                 logger.log_die(" -S option can not be used with -C.\n");
             break;
         case 'R':
-            globals::rendezvous = true;
+            globals::is_rendezvous = true;
             int c;
             if((c = sscanf(optarg,"%[^:]:%[^:]",sPeer_rzv_lport,sPeer_rzv_rport)) < 1)
                 logger.log_die("Wrong -R option syntax.\n");
@@ -296,7 +314,7 @@ int main(int argc, char* argv[], char* envp[])
     logger.log_debug(1, "peer addr = %s peer_rport = %s peer_lport = %s\n",
               sPeer_addr, sPeer_remote_port, sPeer_listen_port);
     
-    if (globals::demonize) { 
+    if (globals::is_demonize) { 
        switch (fork()) {
        case 0:  /* Child (left running on it's own) */
           break;
@@ -383,7 +401,7 @@ int main(int argc, char* argv[], char* envp[])
         return 1;
     }
     
-    if (globals::rendezvous) {
+    if (globals::is_rendezvous) {
         if (0 != getaddrinfo(NULL, sPeer_rzv_lport, &hints, &pPeerRzvLocal))
         {
             logger.log_die("Incorrect peer network address.\n");
@@ -398,7 +416,7 @@ int main(int argc, char* argv[], char* envp[])
 
     
     if (mode == SERVER) {
-        if(!globals::rendezvous) {
+        if(!globals::is_rendezvous) {
             ludtsock = UDT::socket(pServaddr->ai_family, pServaddr->ai_socktype, pServaddr->ai_protocol);
             setsockopt(ludtsock);
             if (UDT::ERROR == UDT::bind(ludtsock, pServaddr->ai_addr, pServaddr->ai_addrlen))
@@ -448,7 +466,7 @@ int main(int argc, char* argv[], char* envp[])
 
 
         if (mode == SERVER) {
-            if (!globals::rendezvous) {
+            if (!globals::is_rendezvous) {
                 if (UDT::INVALID_SOCK == (audtsock = UDT::accept(ludtsock, (sockaddr*)&clientaddr, &addrlen)))
                 {
                     logger.log_err("accept: %s\n", UDT::getlasterror().getErrorMessage());
@@ -489,7 +507,7 @@ int main(int argc, char* argv[], char* envp[])
                     logger.log_notice("rejected peer connection: %s:%s\n", clienthost, clientservice);
                     continue;
             }
-            if (globals::debug_level or globals::track_connections)
+            if (globals::debug_level or globals::is_track_connections)
             	logger.log_notice("accepted peer connection: %s:%s\n", clienthost, clientservice);
 
             setsockopt(audtsock);
@@ -511,7 +529,7 @@ int main(int argc, char* argv[], char* envp[])
             		continue;
             	}
             }
-            if (globals::debug_level or globals::track_connections)
+            if (globals::debug_level or globals::is_track_connections)
             	logger.log_notice("accepted socks connection: %s:%s\n", clienthost, clientservice);
             pthread_create(&childthread, NULL, start_child,  &atcpsock);
         }
@@ -667,7 +685,7 @@ void* start_child(void *servsock) {
             sockaddr * bind_addr;
             size_t     addr_len;
 
-            if (globals::rendezvous) {
+            if (globals::is_rendezvous) {
                 bind_addr = pPeerRzvLocal->ai_addr;
                 addr_len  = pPeerRzvLocal->ai_addrlen;
             }
@@ -728,7 +746,7 @@ void* start_child(void *servsock) {
     close(cargs.tcpsock);
     //logger.log_debug("... closing tcp connection : ok");
     //logger.log_debug("");
-    if (globals::debug_level or globals::track_connections)
+    if (globals::debug_level or globals::is_track_connections)
     	logger.log_notice("close %s connection: %s:%s\n", conntype, clienthost, clientservice);
     return NULL;
 }
@@ -956,7 +974,7 @@ void setsockopt(UDTSOCKET sock) {
     ////
     // setup rendezvous mode if -R flag
     //
-    if(globals::rendezvous)
+    if(globals::is_rendezvous)
         UDT::setsockopt(sock, 0, UDT_RENDEZVOUS, new bool(true), sizeof(bool));
 
     // set UDP port range to bind if the option UDP_BASEPORT exists (???)

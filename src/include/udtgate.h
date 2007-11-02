@@ -43,15 +43,56 @@ struct cargs_t {
     int       shutdown;
 };
 
+#define ACL_ENTRY_DST 0
+
+class acl_entry {
+public:
+    static const uint32_t LOCAL_TOKEN    = 0xFFFFFFFF;
+    static const uint32_t ATTACHED_TOKEN = 0xFFFFFFFE;
+
+    in_addr_t src_addr;
+    in_addr_t src_mask;
+#if ACL_ENTRY_DST
+    in_addr_t dst_addr;
+    in_addr_t dst_mask;
+#endif    
+    uint16_t min_port;
+    uint16_t max_port;
+    
+    acl_entry() :
+        src_addr(0), src_mask(0),
+#if ACL_ENTRY_DST
+        dst_addr(0), dst_mask(0),
+#endif
+        min_port(0), max_port(0xFFFF)
+    {
+        
+    }
+    
+};
+
+class acl_table {
+    std::set<acl_entry> table;
+public:
+    void clear();
+    bool add(std::string entry);
+    bool match(sockaddr_in * dst);
+};
+
+//typedef std::set<acl_entry_t> acl_table_t;
 
 class globals {
 public:
     static int  net_access; // network access 0 - loopback; 1 - local subnets; 2+ - any.
     static int  debug_level;
     static int  dump_message;
-    static bool track_connections;
-    static bool rendezvous;
-    static bool demonize;
+    static bool is_track_connections;
+    static bool is_rendezvous;
+    static bool is_demonize;
+    static bool is_custom_acl;
+    
+    static acl_table custom_acl;
+    
 #ifdef UDP_BASEPORT_OPTION
     static int baseport;
     static int maxport;
@@ -77,15 +118,5 @@ struct sock_pkt_0 {
 };
 #pragma pack()
 
-/*
-template <class T> class SET {
-	set<T> data;
-public:
-	void drop(T e) 		{data.erase(e);};
-	bool isset(T e) 	{return data.find(e) != data.end();};
-	void set(T e)   	{data.insert(e);}
-	void clear()  		{data.clear();}
-};
-*/
 
 #endif

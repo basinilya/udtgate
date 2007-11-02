@@ -188,4 +188,27 @@ namespace utl {
         for(dst1 = (char*) dst, src1 = (char*) src; size>0; size--, dst1++, src1++)
             *dst1 &= *src1;
     }
+    
+    std::vector<std::string> split (const std::string &inString, 
+                                      const std::string &separator) {
+        
+       std::vector<std::string> returnVector; 
+       std::string::size_type start = 0; 
+       std::string::size_type end = 0; 
+
+       while ((end=inString.find (separator, start)) != std::string::npos) 
+       { 
+          returnVector.push_back (inString.substr (start, end-start)); 
+          start = end+separator.size(); 
+       } 
+
+       returnVector.push_back (inString.substr (start)); 
+
+       return returnVector; 
+
+    }
+    std::vector<std::string> split (const std::string &inString, 
+                                      const char * const separator) {
+       return split(inString, std::string(separator)); 
+    }
 }

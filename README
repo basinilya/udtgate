@@ -49,7 +49,7 @@ INTRODUCTION
 
     * udtrelay - lightweight proxy allowing to pass TCP connections
     between two sites over UDT tunnel. 
-    See README.udtrelay for details.
+      See README.udtrelay for details.
 
 
 SUPPORTED ARCHITECTURES
@@ -162,19 +162,8 @@ MAILING LISTS
 
 CONFIGURATION AND SETUP
 
-  * udtrelay
+  udtrelay - see README.udtrelay file for details
 
-    No configuration file. To establish tunnel between hosts
-    A and B, run on each side:
-    
-      udtrelay <socksport> <peerport> <remoteaddess>
-
-    Each udtrelay instance run as minimal sock4 server at <socksport>
-    for locally originated outgoing TCP connection requests. Each such
-    connection is passed to UDT tunnel to <remoteaddress>/<peerport> at
-    opposite side.
-
-    Run udtrelay without arguments to see supported options.
 
 
 SUBMITTING BUG REPORTS AND FEATURE REQUESTS

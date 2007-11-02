@@ -9,6 +9,8 @@ Prerequestives
      Latest tested distribution is udt.sdk.4.0.beta2.gnu_conf.tar.gz.
    
    * Install some package to "socksify" applications (optional).
+     (!Note! You can "socksify" you Unix applications with a simple
+      minisocks library included to the udtgate package) 
 
      - For Unix    - runsocks
        see ports or download:
