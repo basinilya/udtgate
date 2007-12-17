@@ -26,11 +26,11 @@
 #  include <errno.h>
 #  include <assert.h>
 #  include <stdarg.h>
-#  include <udt/udt.h>
+#  include <udt.h>
 #  include <logger.h>
 #endif  // COMMON_INCLUDE
 
-#include <udt/udt.h>
+#include <udt.h>
 #include <map>
 #include <set>
 

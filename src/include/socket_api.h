@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <udt/udt.h>
+#include <udt.h>
 #include <set>
 
 namespace SOCK_API

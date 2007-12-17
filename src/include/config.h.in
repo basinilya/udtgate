@@ -141,8 +141,8 @@
 /* Define to 1 if you have <sys/wait.h> that is POSIX.1 compatible. */
 #undef HAVE_SYS_WAIT_H
 
-/* Define to 1 if you have the <udt/udt.h> header file. */
-#undef HAVE_UDT_UDT_H
+/* Define to 1 if you have the <udt.h> header file. */
+#undef HAVE_UDT_H
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H

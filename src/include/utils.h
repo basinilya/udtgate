@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <string>
-#include <udt/udt.h>
+#include <udt.h>
 
 
 #define DEBUG 1

@@ -37,7 +37,7 @@ fi
 if test $udt_include_ok != "no" 
   then
     AC_CHECK_FILE(
-      ["$udt_include_ok/udt/udt.h"],
+      ["$udt_include_ok/udt.h"],
       [
         CPPFLAGS="$CPPFLAGS -I$udt_include_ok"
       ],
@@ -48,7 +48,7 @@ if test $udt_include_ok != "no"
     )
   else
     AC_CHECK_HEADERS(
-      [udt/udt.h],
+      [udt.h],
       ,
       [AC_MSG_ERROR(The UDT header file <udt.h> not found!)]
     )
