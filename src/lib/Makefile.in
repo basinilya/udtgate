@@ -58,7 +58,7 @@ libudtgate_a_AR = $(AR) $(ARFLAGS)
 libudtgate_a_LIBADD =
 am_libudtgate_a_OBJECTS = socket_api.$(OBJEXT) utils.$(OBJEXT) \
 	logger.$(OBJEXT) setproctitle.$(OBJEXT) worker.$(OBJEXT) \
-	udtgate.$(OBJEXT) acl_table.$(OBJEXT)
+	udtgate.$(OBJEXT)
 libudtgate_a_OBJECTS = $(am_libudtgate_a_OBJECTS)
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -209,8 +209,9 @@ noinst_LIBRARIES = libudtgate.a
 libudtgate_a_SOURCES = socket_api.cpp utils.cpp logger.cpp  setproctitle.cpp\
 			../include/socket_api.h ../include/utils.h \
             		../include/logger.h ../include/setproctitle.h worker.cpp \
-			udtgate.cpp ../include/loopbuffer.h acl_table.cpp
+			udtgate.cpp ../include/loopbuffer.h
 
+#acl_table.cpp
 libminisocks_la_SOURCES = minisocks.cpp
 noinst_HEADERS = ../include/udtgate.h
 all: all-am
@@ -289,7 +290,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acl_table.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/logger.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/minisocks.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/setproctitle.Po@am__quote@
