@@ -1,7 +1,9 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <udt.h>
-#include <cc.h>
+#ifdef UDT_CCC_OPTION
+	#include <cc.h>
+#endif
 #include <setproctitle.h>
 #define  DEFAULT_INCLUDES
 #include <udtgate.h>
@@ -92,9 +94,11 @@ typedef map<UDTOpt, int> UDT_OPTIONS_T;
 
 UDT_OPTIONS_T udt_options;
 
+#ifdef UDT_CCC_OPTION
 char* cc_lib[] = {"UDT", "Vegas","TCP","ScalableTCP","HSTCP",
         "BiCTCP", "Westwood", "FAST"};
 char* ccc = "";
+#endif
 
 extern char *optarg;
 extern int   optind, opterr;
@@ -130,7 +134,7 @@ int main(int argc, char* argv[], char* envp[])
         "  <peer_addr[:port]> Remote UDT peer address and optional custom remote port.\n"
         "\n"
         "  OPTIONS: \n"
-        "    -h               How this help and exit.\n"
+        "    -h               Show this help and exit.\n"
         "    -d               Encrease debug level, superset of -L.\n"
         "    -X <len>         dump fisrt <len> bytes as ASCII from each message.\n"
         "                     this option also sets maximal debug level.\n"
@@ -139,12 +143,14 @@ int main(int argc, char* argv[], char* envp[])
         "    -D               Demonize.\n"
         "    -L               Log connections\n"
         "    -N               Allow connections from/to attached subnets \n"
-        "                     (by default only connections from/to local device"
+        "                     (by default only connections from/to local device\n"
         "                     are permited);\n"
         "                     appling this option twice - allows all incoming\n"
         "                     and outgoing coonections.\n"
+#ifdef UDT_ACL_OPTION        
         "    -A <acl>         (-) Setup custom access control list for incoming "
-        "                     connections, see README.udtrelay for details."
+#endif        
+        "                     connections, see README.udtrelay for details.\n"
         "    -C               Client-only mode: don't accept incoming peer/UDT\n"
         "                     connections.\n"
         "    -S               Server-only mode: don't accept outgoing socks\n"
@@ -159,7 +165,9 @@ int main(int argc, char* argv[], char* envp[])
 #ifdef UDP_BASEPORT_OPTION
         "    -P <from:to>     UDP port range to use for UDT data chanel.\n"
 #endif
+#ifdef UDT_CCC_OPTION
         "    -c <ccc>         Congetion control class:\n"
+#endif        
         "                       UDT (default), TCP, Vegas, ScalableTCP, HSTCP,\n"
         "                       BiCTCP, Westwood, FAST.\n"
         "    -U <opt=val>     Set some additional UDT options for UDT socket:\n"
@@ -179,6 +187,7 @@ int main(int argc, char* argv[], char* envp[])
         case 'N':
             globals::net_access++;
             break;
+#ifdef UDT_ACL_OPTION
         case 'A':
             globals::is_custom_acl = true;
             custom_acl_entries = utl::split(string(optarg), "+"); 
@@ -191,6 +200,7 @@ int main(int argc, char* argv[], char* envp[])
             }
             exit(0);
             break;
+#endif            
         case 'd':
             globals::debug_level++;
             break;
@@ -233,6 +243,7 @@ int main(int argc, char* argv[], char* envp[])
                 logger.log_die("Wrong -P option values: %s.\n", optarg);
             break;
 #endif
+#ifdef UDT_CCC_OPTION
         case 'c':
             ccc = (char*) malloc(strlen(optarg)+1);
             strcpy(ccc, optarg);
@@ -248,6 +259,7 @@ int main(int argc, char* argv[], char* envp[])
                     logger.log_die("\nUnsupported CC class (-c option): %s. Use -h for help\n",ccc);
             }
             break;
+#endif            
         case 'U':
             parse_udt_option(optarg);
             break;
@@ -985,6 +997,7 @@ void setsockopt(UDTSOCKET sock) {
 
     // {"Vegas","TCP","ScalableTCP","HSTCP","BiCTCP", "Westwood", "FAST"};
 
+#ifdef UDT_CCC_OPTION
     if (! strcasecmp(ccc, "")) {
         //UDT::setsockopt(sock, 0, UDT_CC, new CCCFactory<CUDTCC>, sizeof(CCCFactory<CUDTCC>));
     }
@@ -1016,6 +1029,7 @@ void setsockopt(UDTSOCKET sock) {
         cerr << "\nunsupprted congetion control class (option -c): " << ccc<< endl;
         exit(-1);
     }
+#endif
 }
 
 int parse_udt_option (char * optstr) {

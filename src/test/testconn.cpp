@@ -1,7 +1,9 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <udt.h>
-#include <cc.h>
+#ifdef UDT_CCC_OPTION
+	#include <cc.h>
+#endif	
 #include <setproctitle.h>
 #define  DEFAULT_INCLUDES
 #include <udtgate.h>

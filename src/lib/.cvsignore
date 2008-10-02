@@ -3,3 +3,4 @@ Makefile
 *.lo
 *.la
 .libs
+libudtgate.a
