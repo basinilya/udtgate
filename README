@@ -115,6 +115,9 @@ PREREQUESTIVES
        
      - For Windows - SocksCap
        http://www.socks.permeo.com/
+      
+       NOTE: minisocks.so library from this distribution
+             can be used to "socksify" applications. 
 
 INSTALLATION
 

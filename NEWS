@@ -1,3 +1,6 @@
+2008-10-01 Version 1.5-fix2
+    * fixed: temprorary blocked CCC extentions
+
 2007-12-18 Version 1.5
     * done:  remove udt/ prefix form ext. udt headers
              to get compatability with udt.sdk.gnu.4.1

@@ -15,11 +15,11 @@ $lib    = $OPT->{l} if(exists $OPT->{l});
 $ENV{'MINISOCKS_SERVER'} = $server;
 $ENV{'LD_PRELOAD'} .= ":$lib";
 
-print "==> ---\n";
+#print "==> ---\n";
 
-foreach (keys %ENV) {
-    print "==> $_\t $ENV{$_}\n";
-}
+#foreach (keys %ENV) {
+#    print "==> $_\t $ENV{$_}\n";
+#}
 
 exec(@ARGV);
 

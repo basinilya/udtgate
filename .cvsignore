@@ -9,3 +9,4 @@ config.log
 NEWS.sav
 core.*
 gmon.out
+.libs

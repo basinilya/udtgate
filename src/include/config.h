@@ -81,7 +81,7 @@
 /* #undef HAVE_STAT_EMPTY_STRING_BUG */
 
 /* Define to 1 if stdbool.h conforms to C99. */
-/* #undef HAVE_STDBOOL_H */
+#define HAVE_STDBOOL_H 1
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1
@@ -173,6 +173,10 @@
    slash. */
 #define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
 
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#define LT_OBJDIR ".libs/"
+
 /* Name of package */
 #define PACKAGE "udtgate"
 
@@ -183,13 +187,13 @@
 #define PACKAGE_NAME "udtgate"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "udtgate 1.5-fix1"
+#define PACKAGE_STRING "udtgate 1.5-fix2-1"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "udtgate"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.5-fix1"
+#define PACKAGE_VERSION "1.5-fix2-1"
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #define RETSIGTYPE void
@@ -213,7 +217,7 @@
 #define TIME_WITH_SYS_TIME 1
 
 /* Version number of package */
-#define VERSION "1.5-fix1"
+#define VERSION "1.5-fix2-1"
 
 /* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
    <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
