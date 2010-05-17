@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.61)
-AC_INIT([udtgate], [1.5-fix2-1], [vkonoplev@acm.org])
+AC_PREREQ(2.59)
+AC_INIT([udtgate], [1.5-fix4], [vkonoplev@acm.org])
 AC_CANONICAL_SYSTEM
 #AM_INIT_AUTOMAKE
 AC_PROG_RANLIB
@@ -58,7 +58,10 @@ AC_PROG_GCC_TRADITIONAL
 
 # Checks for libraries.
 
-AC_CHECK_LIB(dl, dlsym, , AC_MSG_FAILURE([Mandatory library dl is absent]))
+#AC_CHECK_LIB(dl, dlsym, , AC_MSG_FAILURE([Mandatory library dl is absent]))
+AC_CHECK_LIB([m], [sqrt])
+AC_CHECK_LIB([pthread], [pthread_create])
+AC_CHECK_LIB([socket], [socket])
 
 AC_SEARCH_LIBS([pthread_create], [pthread kse], ,
     AC_MSG_FAILURE([Can not find mandatory pthread library.]))
@@ -74,13 +77,13 @@ AC_CHECK_HEADERS([arpa/inet.h netdb.h netinet/in.h sys/socket.h sys/time.h \
 AC_HEADER_STDBOOL
 AC_C_CONST
 AC_C_INLINE
-AC_TYPE_INT64_T
-AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
+#AC_TYPE_INT64_T
+#AC_TYPE_SIZE_T
+#AC_TYPE_SSIZE_T
 AC_HEADER_TIME
-AC_TYPE_UINT32_T
-AC_TYPE_UINT8_T
-AC_TYPE_OFF_T
+#AC_TYPE_UINT32_T
+#AC_TYPE_UINT8_T
+#AC_TYPE_OFF_T
 
 # Checks for library functions.
 AC_FUNC_FORK
@@ -111,6 +114,5 @@ AC_CONFIG_FILES([Makefile
                  src/lib/Makefile
                  src/relay/Makefile
                  src/gate/Makefile
-                 src/test/Makefile
                  ])
 AC_OUTPUT
