@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([udtgate], [1.5-fix4], [vkonoplev@acm.org])
+AC_INIT([udtgate], [1.5-fix5], [vkonoplev@acm.org])
 AC_CANONICAL_SYSTEM
 #AM_INIT_AUTOMAKE
 AC_PROG_RANLIB

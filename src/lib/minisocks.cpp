@@ -14,7 +14,9 @@
  * Simple socks4 wrapper for connect()
  */
 
-
+extern "C" {
+  int connect (int sd,  const struct sockaddr *name, socklen_t namelen);
+}
 
 typedef enum {PENDING, DONE, ERROR, ABSENT} status_t; 
 

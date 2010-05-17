@@ -13,7 +13,7 @@
 #    include <signal.h>
 #    include <poll.h>
 #    include <sys/types.h>
-#    include <sys/sysctl.h>
+// #    include <sys/sysctl.h>
 #    include <syslog.h>
 #  else // Win32
 #    include <winsock2.h>

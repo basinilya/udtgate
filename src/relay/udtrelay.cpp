@@ -12,6 +12,8 @@
 #include <socket_api.h>
 #include "udtrelay.h"
 
+#include <map>
+
 using namespace std;
 
 void* start_child(void*);
@@ -47,7 +49,6 @@ int tcp_send_all (int sock, char * data, size_t size);
  *  Check address against local interfaces/subnets
  *  returns true if match
  */
-bool check_source (sockaddr* addr, bool subnet);
 
 void exit_handler(int);
 
@@ -90,7 +91,7 @@ UDT_OPTION_T UDT_OPTIONS_LIST [] = {
     {"UDT_LINGER",	UDT_LINGER}
 };
 
-typedef map<UDTOpt, int> UDT_OPTIONS_T;
+typedef std::map<UDTOpt, int> UDT_OPTIONS_T;
 
 UDT_OPTIONS_T udt_options;
 
@@ -142,11 +143,13 @@ int main(int argc, char* argv[], char* envp[])
         "                     this option is 20\n"
         "    -D               Demonize.\n"
         "    -L               Log connections\n"
+#if HAVE_GETIFADDRS
         "    -N               Allow connections from/to attached subnets \n"
         "                     (by default only connections from/to local device\n"
         "                     are permited);\n"
         "                     appling this option twice - allows all incoming\n"
         "                     and outgoing coonections.\n"
+#endif
 #ifdef UDT_ACL_OPTION        
         "    -A <acl>         (-) Setup custom access control list for incoming "
 #endif        
@@ -167,9 +170,9 @@ int main(int argc, char* argv[], char* envp[])
 #endif
 #ifdef UDT_CCC_OPTION
         "    -c <ccc>         Congetion control class:\n"
-#endif        
         "                       UDT (default), TCP, Vegas, ScalableTCP, HSTCP,\n"
         "                       BiCTCP, Westwood, FAST.\n"
+#endif
         "    -U <opt=val>     Set some additional UDT options for UDT socket:\n"
         "                       UDT_MSS, UDT_RCVBUF, UDT_SNDBUF, UDP_RCVBUF or\n"
         "                       UDP_SNDBUF.\n"
@@ -221,9 +224,9 @@ int main(int argc, char* argv[], char* envp[])
             mode = CLIENT;
             break;
         case 'S':
-            mode = SERVER;
             if (mode != DUAL)
                 logger.log_die(" -S option can not be used with -C.\n");
+            mode = SERVER;
             break;
         case 'R':
             globals::is_rendezvous = true;
@@ -487,13 +490,13 @@ int main(int argc, char* argv[], char* envp[])
             } else {
                 audtsock = UDT::socket(pServaddr->ai_family, pServaddr->ai_socktype, pServaddr->ai_protocol);
                 
+                setsockopt(audtsock);
+                
                 if (UDT::ERROR == UDT::bind(audtsock, pServaddr->ai_addr, pServaddr->ai_addrlen))
                 {
                     logger.log_err("udt bind: %s\n", UDT::getlasterror().getErrorMessage());
                     return 0;
                 }
-                
-                setsockopt(audtsock);
                 
                 int rc;
                 while((rc = UDT::connect(audtsock, pPeerRzvRemote->ai_addr, pPeeraddr->ai_addrlen)) < 0) {

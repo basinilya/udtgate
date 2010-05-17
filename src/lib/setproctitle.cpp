@@ -126,7 +126,10 @@ typedef unsigned int	*pt_entry_t;
 #  define SPT_BUFSIZE	2048
 # endif
 
-# ifdef OS_FREEBSD
+# ifdef OS_FREEBSD 
+    extern char ** environ;
+# endif
+# ifdef OS_SOLARIS
     extern char ** environ;
 # endif
 

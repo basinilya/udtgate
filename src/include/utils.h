@@ -7,7 +7,7 @@
 #include <cstdio>
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <sys/sysctl.h>
+//#include <sys/sysctl.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <netdb.h>

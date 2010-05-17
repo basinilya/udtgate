@@ -23,7 +23,7 @@ fi
 
 
 AC_CHECK_LIB(
-    [udt],[socket],
+    [udt],[udtversion],
     , AC_MSG_ERROR([The UDT library <libudt> not found!]),
     [$LDFLAGS]
 )

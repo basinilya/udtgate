@@ -92,7 +92,9 @@ _system("mv configure.ac.new configure.ac");
 _system("mv README.new README");
 
 foreach ('ChangeLog', 'NEWS') {
-	my $F = $_;
+    my $F = $_;
+    print "\nPlease edit $F now (type enter)\n";
+    <>; 
     _system("cp $F $F.sav");
     _system("echo '$date Version $newver\n\    *\n\n'> $F");
     _system("cat $F.sav >> $F");

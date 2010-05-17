@@ -2,7 +2,9 @@
 #include <unistd.h>
 #include <logger.h>
 #include <netinet/in.h>
-#include <ifaddrs.h>
+#if HAVE_GETIFADDRS
+  #include <ifaddrs.h>
+#endif
 #include <utils.h>
 #include <errno.h>
 
@@ -79,7 +81,9 @@ namespace utl {
     ////
      //Check if the address match local interfaces or subnets
      ///
+
     bool check_source (sockaddr * addr, bool subnet) {
+#if HAVE_GETIFADDRS
 
         char addr_str[256];
         char * where = "check_source:";
@@ -89,7 +93,6 @@ namespace utl {
 
         dump_inetaddr((sockaddr_in*) addr, addr_str);
 
-#if HAVE_GETIFADDRS
         struct ifaddrs *ifp, *ifap;
         if(::getifaddrs(&ifap)<0)
             logger.log_die("getifaddrs failed: errno = %d\n", errno);
@@ -130,11 +133,12 @@ namespace utl {
         logger.log_debug("%s no match\n", where);
 
         ::freeifaddrs(ifap);
-#else
-#  error getifaddr no relized!
-#endif // HAVE_GETIFADDRS
         return false;
+#else // HAVE_GETIFADDRS
+        return true;
+#endif // HAVE_GETIFADDRS
     }
+
     bool sockaddr_match(sockaddr * addr1, sockaddr * addr2, bool portcmp) {
 
         assert(addr1->sa_family == addr2->sa_family

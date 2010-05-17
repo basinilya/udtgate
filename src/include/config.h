@@ -15,7 +15,7 @@
 #define HAVE_DLFCN_H 1
 
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
-/* #undef HAVE_DOPRNT */
+#define HAVE_DOPRNT 1
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #define HAVE_FCNTL_H 1
@@ -24,7 +24,7 @@
 #define HAVE_FORK 1
 
 /* Define to 1 if you have the `getifaddrs' function. */
-#define HAVE_GETIFADDRS 1
+/* #undef HAVE_GETIFADDRS */
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #define HAVE_GETTIMEOFDAY 1
@@ -35,8 +35,14 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
-/* Define to 1 if you have the `dl' library (-ldl). */
-#define HAVE_LIBDL 1
+/* Define to 1 if you have the `m' library (-lm). */
+#define HAVE_LIBM 1
+
+/* Define to 1 if you have the `pthread' library (-lpthread). */
+#define HAVE_LIBPTHREAD 1
+
+/* Define to 1 if you have the `socket' library (-lsocket). */
+#define HAVE_LIBSOCKET 1
 
 /* Define to 1 if you have the `udt' library (-ludt). */
 #define HAVE_LIBUDT 1
@@ -173,10 +179,6 @@
    slash. */
 #define LSTAT_FOLLOWS_SLASHED_SYMLINK 1
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#define LT_OBJDIR ".libs/"
-
 /* Name of package */
 #define PACKAGE "udtgate"
 
@@ -187,13 +189,13 @@
 #define PACKAGE_NAME "udtgate"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "udtgate 1.5-fix2-1"
+#define PACKAGE_STRING "udtgate 1.5-fix4"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "udtgate"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "1.5-fix2-1"
+#define PACKAGE_VERSION "1.5-fix4"
 
 /* Define as the return type of signal handlers (`int' or `void'). */
 #define RETSIGTYPE void
@@ -217,17 +219,7 @@
 #define TIME_WITH_SYS_TIME 1
 
 /* Version number of package */
-#define VERSION "1.5-fix2-1"
-
-/* Define for Solaris 2.5.1 so the uint32_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
-   #define below would cause a syntax error. */
-/* #undef _UINT32_T */
-
-/* Define for Solaris 2.5.1 so the uint8_t typedef from <sys/synch.h>,
-   <pthread.h>, or <semaphore.h> is not used. If the typedef was allowed, the
-   #define below would cause a syntax error. */
-/* #undef _UINT8_T */
+#define VERSION "1.5-fix4"
 
 /* Define to empty if `const' does not conform to ANSI C. */
 /* #undef const */
@@ -238,35 +230,14 @@
 /* #undef inline */
 #endif
 
-/* Define to the type of a signed integer type of width exactly 64 bits if
-   such a type exists and the standard includes do not define it. */
-/* #undef int64_t */
-
 /* Define to rpl_malloc if the replacement function should be used. */
 /* #undef malloc */
-
-/* Define to `long int' if <sys/types.h> does not define. */
-/* #undef off_t */
 
 /* Define to `int' if <sys/types.h> does not define. */
 /* #undef pid_t */
 
 /* Define to rpl_realloc if the replacement function should be used. */
 /* #undef realloc */
-
-/* Define to `unsigned int' if <sys/types.h> does not define. */
-/* #undef size_t */
-
-/* Define to `int' if <sys/types.h> does not define. */
-/* #undef ssize_t */
-
-/* Define to the type of an unsigned integer type of width exactly 32 bits if
-   such a type exists and the standard includes do not define it. */
-/* #undef uint32_t */
-
-/* Define to the type of an unsigned integer type of width exactly 8 bits if
-   such a type exists and the standard includes do not define it. */
-/* #undef uint8_t */
 
 /* Define as `fork' if `vfork' does not work. */
 /* #undef vfork */
