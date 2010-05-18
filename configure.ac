@@ -114,5 +114,6 @@ AC_CONFIG_FILES([Makefile
                  src/lib/Makefile
                  src/relay/Makefile
                  src/gate/Makefile
+                 src/minisocks/Makefile
                  ])
 AC_OUTPUT
