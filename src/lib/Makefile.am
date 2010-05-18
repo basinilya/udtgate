@@ -1,13 +1,9 @@
-lib_LTLIBRARIES = libminisocks.la
 noinst_LIBRARIES = libudtgate.a
 
-libudtgate_a_SOURCES =  socket_api.cpp utils.cpp logger.cpp  setproctitle.cpp\
-			../include/socket_api.h ../include/utils.h \
-            		../include/logger.h ../include/setproctitle.h worker.cpp \
-			udtgate.cpp ../include/loopbuffer.h
+libudtgate_a_SOURCES =  socket_api.cpp utils.cpp logger.cpp  setproctitle.cpp \
+		worker.cpp getifaddrs.cpp udtgate.cpp \
+		../include/socket_api.h ../include/utils.h ../include/logger.h \
+		../include/setproctitle.h  ../include/getifaddrs.h ../include/loopbuffer.h 
 #acl_table.cpp
-
-libminisocks_la_SOURCES = minisocks.cpp
-
 
 noinst_HEADERS = ../include/udtgate.h

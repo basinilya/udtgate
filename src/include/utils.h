@@ -19,6 +19,11 @@
 #include <string>
 #include <udt.h>
 
+#if HAVE_GETIFADDRS
+#    include <ifaddrs.h>
+#else
+#    include <getifaddrs.h>
+#endif
 
 #define DEBUG 1
 #ifdef DEBUG

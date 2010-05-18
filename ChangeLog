@@ -1,3 +1,9 @@
+2010-05-18 Version 1.5-fix6
+    * done: custom getifaddr and access control for Solaris 
+    * fixed: move minisocks to dedicated subdir and CC compiler 
+    * fixed:  '#define _GNU_SOURCE' to get defined RTLD_NEXT 
+      on Linux in minisocks.c 
+
 2010-05-17 Version 1.5-fix5
     * temporary remove test subdir from build process
     * fixed: bug with -S option

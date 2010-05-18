@@ -1,6 +1,12 @@
+2010-05-18 Version 1.5-fix6
+    * info:  fixed for run on Solaris
+    * done:  emulate getifaddr() 
+    * fixed: minisocks.cpp -> minisocks.c
+    * todo:  look for rendezvous mode on Solaris
+
 2010-05-17 Version 1.5-fix5
     * done: Build for Solaris10(prereliase)
-    * fixed -S bug
+    * fixed: -S bug
     * bug:  bocked acl if no getifaddr()
     * todo: emulate getifaddr() if absent  
 

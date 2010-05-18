@@ -189,7 +189,7 @@ target_vendor = @target_vendor@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 EXTRA_DIST = LICENSE.setproctitle README.udtrelay
-SUBDIRS = scripts src/lib src/relay src/gate 
+SUBDIRS = scripts src/lib src/relay src/gate src/minisocks 
 all: all-recursive
 
 .SUFFIXES:

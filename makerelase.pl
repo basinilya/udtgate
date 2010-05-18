@@ -28,7 +28,10 @@ while (1) {
     }
     elsif ($newver =~ /^(\d+)\.(\d+)(-\w+)?$/) {
         if ("$newver" eq "$ver") {
-            print "Error, new version ($newver) can not be same as old version ($ver)\n";
+            print "New version ($newver) is the same as old version ($ver)\n";
+            print "Are you sure?: ";
+            $a =<>;
+            if ($a=~/^y/i) {last;}
             next;
         }
     	else {

@@ -143,13 +143,11 @@ int main(int argc, char* argv[], char* envp[])
         "                     this option is 20\n"
         "    -D               Demonize.\n"
         "    -L               Log connections\n"
-#if HAVE_GETIFADDRS
         "    -N               Allow connections from/to attached subnets \n"
         "                     (by default only connections from/to local device\n"
         "                     are permited);\n"
         "                     appling this option twice - allows all incoming\n"
         "                     and outgoing coonections.\n"
-#endif
 #ifdef UDT_ACL_OPTION        
         "    -A <acl>         (-) Setup custom access control list for incoming "
 #endif        

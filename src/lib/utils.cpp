@@ -2,9 +2,6 @@
 #include <unistd.h>
 #include <logger.h>
 #include <netinet/in.h>
-#if HAVE_GETIFADDRS
-  #include <ifaddrs.h>
-#endif
 #include <utils.h>
 #include <errno.h>
 
@@ -83,7 +80,7 @@ namespace utl {
      ///
 
     bool check_source (sockaddr * addr, bool subnet) {
-#if HAVE_GETIFADDRS
+//#if HAVE_GETIFADDRS
 
         char addr_str[256];
         char * where = "check_source:";
@@ -134,9 +131,9 @@ namespace utl {
 
         ::freeifaddrs(ifap);
         return false;
-#else // HAVE_GETIFADDRS
-        return true;
-#endif // HAVE_GETIFADDRS
+//#else // HAVE_GETIFADDRS
+//        return true;
+//#endif // HAVE_GETIFADDRS
     }
 
     bool sockaddr_match(sockaddr * addr1, sockaddr * addr2, bool portcmp) {
