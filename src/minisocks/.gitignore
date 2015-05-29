@@ -1,0 +1,7 @@
+Makefile
+.externalToolBuilders
+core.*
+gmon.out
+.libs
+.deps
+*.a *.la *.lo

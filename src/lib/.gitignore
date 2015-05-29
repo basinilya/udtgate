@@ -1,0 +1,7 @@
+.deps
+Makefile
+*.lo
+*.la
+.libs
+sav
+libudtgate.a
