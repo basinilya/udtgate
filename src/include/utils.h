@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <cstdio>
+#include <cstdlib>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 //#include <sys/sysctl.h>
@@ -17,7 +18,7 @@
 #include <stdlib.h>
 #include <vector>
 #include <string>
-#include <udt.h>
+#include <udt/udt.h>
 
 #if HAVE_GETIFADDRS
 #    include <ifaddrs.h>

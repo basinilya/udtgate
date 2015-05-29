@@ -1,4 +1,6 @@
 #include <logger.h>
+#include <stdlib.h> /* for exit(3) */
+#include <string.h> /* for strlen(3) */
 
 Logger logger();
 

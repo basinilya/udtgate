@@ -23,7 +23,7 @@ fi
 
 
 AC_CHECK_LIB(
-    [udt],[udtversion],
+    [udt],[main],
     , AC_MSG_ERROR([The UDT library <libudt> not found!]),
     [$LDFLAGS]
 )
@@ -37,20 +37,20 @@ fi
 if test $udt_include_ok != "no" 
   then
     AC_CHECK_FILE(
-      ["$udt_include_ok/udt.h"],
+      ["$udt_include_ok/udt/udt.h"],
       [
         CPPFLAGS="$CPPFLAGS -I$udt_include_ok"
       ],
       [
         AC_MSG_RESULT(not found!)
-        AC_MSG_ERROR(The UDT header file <udt.h> not found!)
+        AC_MSG_ERROR(The UDT header file <udt/udt.h> not found!)
       ]
     )
   else
     AC_CHECK_HEADERS(
-      [udt.h],
+      [udt/udt.h],
       ,
-      [AC_MSG_ERROR(The UDT header file <udt.h> not found!)]
+      [AC_MSG_ERROR(The UDT header file <udt/udt.h> not found!)]
     )
 fi
 

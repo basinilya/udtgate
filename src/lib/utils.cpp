@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <utils.h>
 #include <errno.h>
+#include <string.h> /* for memcpy(3) */
 
 extern Logger logger;
 extern int debug_level;

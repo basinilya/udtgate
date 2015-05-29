@@ -1,6 +1,6 @@
 #include <sys/wait.h>
 #include <signal.h>
-#include <udt.h>
+#include <udt/udt.h>
 #ifdef UDT_CCC_OPTION
 	#include <cc.h>
 #endif
